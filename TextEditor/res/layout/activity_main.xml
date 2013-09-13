@@ -15,24 +15,24 @@
         android:layout_height="wrap_content"
         android:hint="@string/start_typing" />
 
-    <Button
-        android:id="@+id/button1"
+     <Button
+        android:id="@+id/RedoButton"
+        style="?android:attr/buttonStyleSmall"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_alignParentBottom="true"
-        android:layout_marginBottom="60dp"
-        android:layout_toRightOf="@+id/button2"
-        android:onClick="undo_message"
-        android:text="@string/edit_undo" />
+        android:layout_alignBaseline="@+id/UndoButton"
+        android:layout_alignBottom="@+id/UndoButton"
+        android:layout_toRightOf="@+id/UndoButton"
+        android:text="Redo" />
 
     <Button
-        android:id="@+id/button2"
+        android:id="@+id/UndoButton"
+        style="?android:attr/buttonStyleSmall"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_alignLeft="@+id/to_broadcast"
-        android:layout_alignParentBottom="true"
-        android:onClick="redo_message"
-        android:text="@string/edit_redo" />
+        android:layout_alignParentLeft="true"
+        android:layout_alignParentTop="true"
+        android:text="Undo" />
 
     <Button
         android:id="@+id/broadcast_button"
