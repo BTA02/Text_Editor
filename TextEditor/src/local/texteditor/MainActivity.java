@@ -1,92 +1,60 @@
 package local.texteditor;
 
 import android.app.Activity;
-import android.content.Intent;
-import android.inputmethodservice.KeyboardView.OnKeyboardActionListener;
 import android.os.Bundle;
-import android.view.Menu;
+import android.text.Editable;
+import android.text.TextWatcher;
 import android.widget.EditText;
 
-public class MainActivity extends Activity implements OnKeyboardActionListener {
-
+public class MainActivity extends Activity 
+{
 	public final static String EXTRA_MESSAGE = "local.myfirstapp.message";
+	private EditText to_broadcast;
 	
 	@Override
-	protected void onCreate(Bundle savedInstanceState) {
+	protected void onCreate(Bundle savedInstanceState) 
+	{
 		super.onCreate(savedInstanceState);
 		setContentView(R.layout.activity_main);
-	}
+		
+		to_broadcast = (EditText) findViewById(R.id.to_broadcast);
+		to_broadcast.addTextChangedListener(new TextWatcher() 
+		{
+			@Override
+			public void afterTextChanged(Editable s) 
+			{
+				// TODO Auto-generated method stub
+			}
 
-	@Override
-	public boolean onCreateOptionsMenu(Menu menu) {
-		// Inflate the menu; this adds items to the action bar if it is present.
-		getMenuInflater().inflate(R.menu.main, menu);
-		return true;
-	}
+			@Override
+			public void beforeTextChanged(CharSequence s, int start, int count,
+					int after) 
+			{
+				// TODO Auto-generated method stub
+			}
 
-	@Override
-	public void onKey(int primaryCode, int[] keyCodes) {
-		// TODO Auto-generated method stub
+			@Override
+			public void onTextChanged(CharSequence s, int start, int before,
+					int count) 
+			{
+				if (count < before) //this is a delete
+				{
+					//any cursor whose location is > start, moves left (before-count)
+				}
+				else if (count > before) //this is an add
+				{
+					
+				}
+				else //this is a full replace
+				{
+					
+				}
+			}
+		});
+		
+		
+		
 		
 	}
-
-	@Override
-	public void onPress(int primaryCode) {
-		// TODO Auto-generated method stub
-		
-	}
-
-	@Override
-	public void onRelease(int primaryCode) {
-		// TODO Auto-generated method stub
-		
-	}
-
-	@Override
-	public void onText(CharSequence text) { //in theory, this takes what was typed on the keyboard, and sends it to
-		//DisplayMessageActivity WITHOUT hitting an extra button
-		Intent intent = new Intent(this, DisplayMessageActivity.class);
-		EditText editText = (EditText) findViewById(R.id.edit_message);
-		String message = editText.getText().toString();
-		intent.putExtra(EXTRA_MESSAGE, message);
-		startActivity(intent);
-	}
-
-	@Override
-	public void swipeDown() {
-		// TODO Auto-generated method stub
-		
-	}
-
-	@Override
-	public void swipeLeft() {
-		// TODO Auto-generated method stub
-		
-	}
-
-	@Override
-	public void swipeRight() {
-		// TODO Auto-generated method stub
-		
-	}
-
-	@Override
-	public void swipeUp() {
-		// TODO Auto-generated method stub
-		
-	}
-	
-
-	
-	/* For reference later
-	public void sendMessage (View view) {
-		//Do something in response to button
-		Intent intent = new Intent(this, DisplayMessageActivity.class);
-		EditText editText = (EditText) findViewById(R.id.edit_message);
-		String message = editText.getText().toString();
-		intent.putExtra(EXTRA_MESSAGE, message);
-		startActivity(intent);
-	}
-	*/
 
 }
