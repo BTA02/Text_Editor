@@ -64,14 +64,30 @@ public class User
     }
   }
   
-  protected static void Add()
+  protected static void Add(CharSequence s, int start, int before,
+			int count)
   {
-	  
+	  //edit everything locally, then send out the new data
+	  /*
+	   * for each cursor in vector<cursors>
+	   * 	if (vector[i] >= start)
+	   * 		vector[i] = vector[i] + (after - count)
+	   * send out the actual string to the server
+	   * myClient.broadcast(broadcastText.getText().toString().getBytes(),
+                "lol");
+	   */
+  }
+ 
+  protected static void Del(CharSequence s, int start, int before,
+			int count)
+  {
+	  //edit everything locally, then send out the new data
   }
   
-  protected static void Del()
+  protected static void Replace(CharSequence s, int start, int before,
+			int count)
   {
-	  
+	  //edit everything locally, then send out the new data
   }
   
 }

@@ -4,6 +4,7 @@ import android.app.Activity;
 import android.os.Bundle;
 import android.text.Editable;
 import android.text.TextWatcher;
+import android.util.Log;
 import android.view.DragEvent;
 import android.view.View;
 import android.view.View.OnClickListener;
@@ -15,6 +16,8 @@ public class MainActivity extends Activity
 {
 	public final static String EXTRA_MESSAGE = "local.myfirstapp.message";
 	private EditText to_broadcast;
+	private final String TAG = "asdf";
+
 	
 	@Override
 	protected void onCreate(Bundle savedInstanceState) 
@@ -85,19 +88,28 @@ public class MainActivity extends Activity
 			public void onTextChanged(CharSequence s, int start, int before,
 					int count) 
 			{
+				
+				Log.i(TAG, "sequence: " + s);
+				Log.i(TAG, "start: " + start);
+				Log.i(TAG, "before: " + before);
+				Log.i(TAG, "count: " + count);
+				Log.i(TAG, "character added: " + s.toString().charAt(start) );
 				//add the text changed to our queue
 				if (count < before) //this is a delete
 				{
-					User.Del();
+					User.Del(s, start, before, count); //update the cursor locations
+					/*
+					 * myClient.broadcast(to_broadcast.getText().toString().getBytes(), "lol");
+			        */
 					//any cursor whose location is > start, moves left (before-count)
 				}
 				else if (count > before) //this is an add
 				{
-					User.Add();
+					User.Add(s, start, before, count);
 				}
 				else //this is a full replace
 				{
-					
+					User.Replace(s, start, before, count);
 				}
 			}
 		});
