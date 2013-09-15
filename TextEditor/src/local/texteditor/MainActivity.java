@@ -16,7 +16,8 @@ public class MainActivity extends Activity
 {
 	public final static String EXTRA_MESSAGE = "local.myfirstapp.message";
 	private EditText to_broadcast;
-	private final String TAG = "asdf";
+	private final String TAG1 = "adds";
+	private final String TAG2 = "dels";
 
 	
 	@Override
@@ -81,23 +82,26 @@ public class MainActivity extends Activity
 			public void beforeTextChanged(CharSequence s, int start, int count,
 					int after) 
 			{
-				// TODO Auto-generated method stub
+				if (count > after) //delete
+				{
+					Log.i(TAG2, "sequence: " + s);
+					Log.i(TAG2, "start: " + start);
+					Log.i(TAG2, "count: " + count);
+					Log.i(TAG2, "after: " + after);
+					Log.i(TAG2, "characters deleted: " + s.toString().substring(start, start+count) );			
+					
+					User.Del(s, start, count, after, s.toString().substring(start, start+count) ); 
+				}
 			}
 
 			@Override
 			public void onTextChanged(CharSequence s, int start, int before,
 					int count) 
 			{
-				
-				Log.i(TAG, "sequence: " + s);
-				Log.i(TAG, "start: " + start);
-				Log.i(TAG, "before: " + before);
-				Log.i(TAG, "count: " + count);
-				Log.i(TAG, "character added: " + s.toString().charAt(start) );
 				//add the text changed to our queue
-				if (count < before) //this is a delete
+				if (count < before) //this is a delete, deal with adding it to the queue elsewhere
 				{
-					User.Del(s, start, before, count); //update the cursor locations
+					//User.Del(s, start, before, count); //update the cursor locations
 					/*
 					 * myClient.broadcast(to_broadcast.getText().toString().getBytes(), "lol");
 			        */
@@ -105,7 +109,13 @@ public class MainActivity extends Activity
 				}
 				else if (count > before) //this is an add
 				{
-					User.Add(s, start, before, count);
+					Log.i(TAG1, "sequence: " + s);
+					Log.i(TAG1, "start: " + start);
+					Log.i(TAG1, "before: " + before);
+					Log.i(TAG1, "count: " + count);
+					Log.i(TAG1, "characters added: " + s.toString().substring(start, (start+count)) );
+					
+					User.Add(s, start, before, count, s.toString().substring(start, (start+count)) );
 				}
 				else //this is a full replace
 				{

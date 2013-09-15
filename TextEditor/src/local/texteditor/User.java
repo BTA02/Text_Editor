@@ -20,7 +20,7 @@ public class User
   {
 
 
-    undoList.add(new EditCom("mov", startLoc, length, newLoc));
+    undoList.add(new EditCom("mov", startLoc, length, newLoc, ""));
     
     System.out.println("MoveChars ->" + undoList.lastElement());
   }
@@ -42,8 +42,14 @@ public class User
       {
         MoveChars(com.moveToLoc, com.length, com.startLoc);
       }
+      else if (com.command == "add")
+      {
+    	  
+      }
       redoList.push(undoList.pop());   
-    } else {
+    } 
+    else 
+    {
       System.out.println("Nothing to undo"); 
     }
   }
@@ -65,28 +71,32 @@ public class User
   }
   
   protected static void Add(CharSequence s, int start, int before,
-			int count)
+			int count, String cChars)
   {
+	  undoList.add(new EditCom("add", start, count, (start+(count-before) ), cChars ));
+	  
 	  //edit everything locally, then send out the new data
 	  /*
 	   * for each cursor in vector<cursors>
 	   * 	if (vector[i] >= start)
 	   * 		vector[i] = vector[i] + (after - count)
 	   * send out the actual string to the server
-	   * myClient.broadcast(broadcastText.getText().toString().getBytes(),
-                "lol");
+	   * myClient.broadcast(broadcastText.getText().toString().getBytes(), "lol");
+	   * myClient.broadcast(s.toString().getBytes(), "lol");
 	   */
   }
  
   protected static void Del(CharSequence s, int start, int before,
-			int count)
+			int count, String cChars)
   {
+	  undoList.add(new EditCom("del", start, count, (start+(count-before) ), cChars ) );
 	  //edit everything locally, then send out the new data
   }
   
   protected static void Replace(CharSequence s, int start, int before,
-			int count)
+			int count) //not done yet
   {
+	  undoList.add(new EditCom("rep", start, count, (start+(count-before) ), "" ) );
 	  //edit everything locally, then send out the new data
   }
   
