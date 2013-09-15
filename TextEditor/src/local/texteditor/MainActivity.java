@@ -17,8 +17,9 @@ public class MainActivity extends Activity
 	public final static String EXTRA_MESSAGE = "local.myfirstapp.message";
 	private EditText to_broadcast;
 	private final String TAG1 = "adds";
-	private final String TAG2 = "dels";
-
+	private final String TAG2 = "all changes";
+	public String pMes;
+	public String nMes;
 	
 	@Override
 	protected void onCreate(Bundle savedInstanceState) 
@@ -82,6 +83,9 @@ public class MainActivity extends Activity
 			public void beforeTextChanged(CharSequence s, int start, int count,
 					int after) 
 			{
+				pMes = s.toString().substring(start, (start+count) );
+				Log.i(TAG2, "pMes: " + pMes);
+				/*
 				if (count > after) //delete
 				{
 					Log.i(TAG2, "sequence: " + s);
@@ -92,19 +96,29 @@ public class MainActivity extends Activity
 					
 					User.Del(s, start, count, after, s.toString().substring(start, start+count) ); 
 				}
+				*/
+				
 			}
 
 			@Override
 			public void onTextChanged(CharSequence s, int start, int before,
 					int count) 
 			{
-				//add the text changed to our queue
+				nMes = s.toString().substring(start, (start+count) );
+				Log.i(TAG2, "nMes: " + nMes);
+				Log.i(TAG2, "sequence: " + s);
+				Log.i(TAG2, "start: " + start);
+				Log.i(TAG2, "count: " + count);
+				Log.i(TAG2, "before: " + before);
+				User.Replace(s, start, before, count, pMes, nMes);
+				
+				/*
 				if (count < before) //this is a delete, deal with adding it to the queue elsewhere
 				{
 					//User.Del(s, start, before, count); //update the cursor locations
-					/*
-					 * myClient.broadcast(to_broadcast.getText().toString().getBytes(), "lol");
-			        */
+					
+					  myClient.broadcast(to_broadcast.getText().toString().getBytes(), "lol");
+			        
 					//any cursor whose location is > start, moves left (before-count)
 				}
 				else if (count > before) //this is an add
@@ -119,8 +133,9 @@ public class MainActivity extends Activity
 				}
 				else //this is a full replace
 				{
-					User.Replace(s, start, before, count);
+					//User.Replace(s, start, before, count);
 				}
+				*/
 			}
 		});
 		

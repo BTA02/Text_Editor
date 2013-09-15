@@ -20,7 +20,7 @@ public class User
   {
 
 
-    undoList.add(new EditCom("mov", startLoc, length, newLoc, ""));
+    //undoList.add(new EditCom("mov", startLoc, length, newLoc, ""));
     
     System.out.println("MoveChars ->" + undoList.lastElement());
   }
@@ -34,6 +34,7 @@ public class User
   
   protected static void Undo()
   {
+
     if (!undoList.empty())
     {
       EditCom com = undoList.lastElement();
@@ -43,6 +44,10 @@ public class User
         MoveChars(com.moveToLoc, com.length, com.startLoc);
       }
       else if (com.command == "add")
+      {
+    	  to_broadcast.getText().insert(com.startLoc, com.previousMes);
+      }
+      else if (com.command == "del")
       {
     	  
       }
@@ -65,16 +70,18 @@ public class User
         MoveChars(com.startLoc, com.length, com.moveToLoc);
       }
       undoList.push(redoList.pop());   
-    } else {
+    } 
+    else 
+    {
       System.out.println("Nothing to redo"); 
     }
   }
   
   protected static void Add(CharSequence s, int start, int before,
-			int count, String cChars)
+			int count, String mes)
   {
-	  undoList.add(new EditCom("add", start, count, (start+(count-before) ), cChars ));
-	  
+	  //undoList.add(new EditCom("add", start, count, (start+(count-before) ), cChars ));
+	  undoList.add(new EditCom("add", start, count, (start+count), mes) );
 	  //edit everything locally, then send out the new data
 	  /*
 	   * for each cursor in vector<cursors>
@@ -89,14 +96,21 @@ public class User
   protected static void Del(CharSequence s, int start, int before,
 			int count, String cChars)
   {
-	  undoList.add(new EditCom("del", start, count, (start+(count-before) ), cChars ) );
+	  //undoList.add(new EditCom("del", start, count, (start+(count-before) ), cChars ) );
 	  //edit everything locally, then send out the new data
   }
   
   protected static void Replace(CharSequence s, int start, int before,
-			int count) //not done yet
+			int count, String pMes, String nMes) //not done yet
   {
-	  undoList.add(new EditCom("rep", start, count, (start+(count-before) ), "" ) );
+	  //count is what i'm adding
+	  //filled start-end with what?
+	  //start = start
+	  //end = start+before
+	  //filled with = nMes
+	  //4th arg is where I move to
+	  //String str = s.toString();
+	  //undoList.add(new EditCom("rep", start, count, (start+count), pMes, nMes, str ) );
 	  //edit everything locally, then send out the new data
   }
   
