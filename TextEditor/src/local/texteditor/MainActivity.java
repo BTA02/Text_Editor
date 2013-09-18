@@ -2,6 +2,8 @@ package local.texteditor;
 
 import java.util.Vector;
 
+import local.texteditor.MovesProtos.Move;
+
 import android.app.Activity;
 import android.os.Bundle;
 import android.text.Editable;
@@ -44,7 +46,8 @@ public class MainActivity extends Activity
 	      @Override
 	      public void onClick(View v)
 	      {
-	         User.Undo();
+	         Move retMove = User.Undo(); //now broadcast retMove
+	         
 	      }
 	    });
 	    redoButton.setOnClickListener(new OnClickListener()
@@ -52,7 +55,7 @@ public class MainActivity extends Activity
 	      @Override
 	      public void onClick(View v)
 	      {
-	         User.Redo();
+	         Move retMove = User.Redo(); //now broadcast retMove
 	      }
 	    });
 	    
@@ -70,7 +73,14 @@ public class MainActivity extends Activity
 	    	int cursorNewLoc = to_broadcast.getSelectionEnd();
 	    	int offset = cursorNewLoc - User.cursorLoc;
 			User.CursorLocChangeForLocalUser(cursorNewLoc);   
-			User.undoList.add(new EditCom(User.Operation.CURSOR, null, offset)); 
+			User.undoList.add(new EditCom(User.Operation.CURSOR, null, offset));
+			Move newMove =
+					Move.newBuilder()
+					.setUserId(1) //need a user id
+					.setMoveType(3)
+					.setCursorChange(offset)
+					.setUndo(0)
+					.build();
 	      }
 	    });
 	   
@@ -97,6 +107,12 @@ public class MainActivity extends Activity
 						User.cursorLoc --;
 						System.out.println("user manual delete: after delete, cursor @ " + User.cursorLoc);
 						User.undoList.add(new EditCom(User.Operation.DELETE, s.toString().charAt(start), 0));
+						Move newMove =
+								Move.newBuilder()
+								.setUserId(1)//need a user id
+								.setMoveType(2)
+								.setUndo(0)
+								.build();						
 					}
 				}
 
@@ -123,6 +139,13 @@ public class MainActivity extends Activity
 						User.cursorLoc ++;
 						System.out.println("user manual add: after add, cursor @ " + User.cursorLoc);
 						User.undoList.add(new EditCom(User.Operation.ADD, s.toString().charAt(start), 0));
+						Move newMove =
+								Move.newBuilder()
+								.setUserId(1) //need a user id
+								.setMoveType(1)
+								.setData(s.toString().substring(start, (start+count)) )
+								.setUndo(0)
+								.build();
 					}
 					else //this is a full replace
 					{

@@ -146,6 +146,24 @@ public final class MovesProtos {
      * </pre>
      */
     int getCursorChange();
+
+    // optional int32 undo = 8;
+    /**
+     * <code>optional int32 undo = 8;</code>
+     *
+     * <pre>
+     *0, 1 = unodo, 2 = redo
+     * </pre>
+     */
+    boolean hasUndo();
+    /**
+     * <code>optional int32 undo = 8;</code>
+     *
+     * <pre>
+     *0, 1 = unodo, 2 = redo
+     * </pre>
+     */
+    int getUndo();
   }
   /**
    * Protobuf type {@code TextEditor1.Move}
@@ -231,6 +249,11 @@ public final class MovesProtos {
             case 56: {
               bitField0_ |= 0x00000040;
               cursorChange_ = input.readInt32();
+              break;
+            }
+            case 64: {
+              bitField0_ |= 0x00000080;
+              undo_ = input.readInt32();
               break;
             }
           }
@@ -495,6 +518,30 @@ public final class MovesProtos {
       return cursorChange_;
     }
 
+    // optional int32 undo = 8;
+    public static final int UNDO_FIELD_NUMBER = 8;
+    private int undo_;
+    /**
+     * <code>optional int32 undo = 8;</code>
+     *
+     * <pre>
+     *0, 1 = unodo, 2 = redo
+     * </pre>
+     */
+    public boolean hasUndo() {
+      return ((bitField0_ & 0x00000080) == 0x00000080);
+    }
+    /**
+     * <code>optional int32 undo = 8;</code>
+     *
+     * <pre>
+     *0, 1 = unodo, 2 = redo
+     * </pre>
+     */
+    public int getUndo() {
+      return undo_;
+    }
+
     private void initFields() {
       baseText_ = "";
       userId_ = 0;
@@ -503,6 +550,7 @@ public final class MovesProtos {
       moveType_ = 0;
       data_ = "";
       cursorChange_ = 0;
+      undo_ = 0;
     }
     private byte memoizedIsInitialized = -1;
     public final boolean isInitialized() {
@@ -536,6 +584,9 @@ public final class MovesProtos {
       }
       if (((bitField0_ & 0x00000040) == 0x00000040)) {
         output.writeInt32(7, cursorChange_);
+      }
+      if (((bitField0_ & 0x00000080) == 0x00000080)) {
+        output.writeInt32(8, undo_);
       }
       getUnknownFields().writeTo(output);
     }
@@ -573,6 +624,10 @@ public final class MovesProtos {
       if (((bitField0_ & 0x00000040) == 0x00000040)) {
         size += com.google.protobuf.CodedOutputStream
           .computeInt32Size(7, cursorChange_);
+      }
+      if (((bitField0_ & 0x00000080) == 0x00000080)) {
+        size += com.google.protobuf.CodedOutputStream
+          .computeInt32Size(8, undo_);
       }
       size += getUnknownFields().getSerializedSize();
       memoizedSerializedSize = size;
@@ -704,6 +759,8 @@ public final class MovesProtos {
         bitField0_ = (bitField0_ & ~0x00000020);
         cursorChange_ = 0;
         bitField0_ = (bitField0_ & ~0x00000040);
+        undo_ = 0;
+        bitField0_ = (bitField0_ & ~0x00000080);
         return this;
       }
 
@@ -760,6 +817,10 @@ public final class MovesProtos {
           to_bitField0_ |= 0x00000040;
         }
         result.cursorChange_ = cursorChange_;
+        if (((from_bitField0_ & 0x00000080) == 0x00000080)) {
+          to_bitField0_ |= 0x00000080;
+        }
+        result.undo_ = undo_;
         result.bitField0_ = to_bitField0_;
         onBuilt();
         return result;
@@ -800,6 +861,9 @@ public final class MovesProtos {
         }
         if (other.hasCursorChange()) {
           setCursorChange(other.getCursorChange());
+        }
+        if (other.hasUndo()) {
+          setUndo(other.getUndo());
         }
         this.mergeUnknownFields(other.getUnknownFields());
         return this;
@@ -1253,6 +1317,55 @@ public final class MovesProtos {
         return this;
       }
 
+      // optional int32 undo = 8;
+      private int undo_ ;
+      /**
+       * <code>optional int32 undo = 8;</code>
+       *
+       * <pre>
+       *0, 1 = unodo, 2 = redo
+       * </pre>
+       */
+      public boolean hasUndo() {
+        return ((bitField0_ & 0x00000080) == 0x00000080);
+      }
+      /**
+       * <code>optional int32 undo = 8;</code>
+       *
+       * <pre>
+       *0, 1 = unodo, 2 = redo
+       * </pre>
+       */
+      public int getUndo() {
+        return undo_;
+      }
+      /**
+       * <code>optional int32 undo = 8;</code>
+       *
+       * <pre>
+       *0, 1 = unodo, 2 = redo
+       * </pre>
+       */
+      public Builder setUndo(int value) {
+        bitField0_ |= 0x00000080;
+        undo_ = value;
+        onChanged();
+        return this;
+      }
+      /**
+       * <code>optional int32 undo = 8;</code>
+       *
+       * <pre>
+       *0, 1 = unodo, 2 = redo
+       * </pre>
+       */
+      public Builder clearUndo() {
+        bitField0_ = (bitField0_ & ~0x00000080);
+        undo_ = 0;
+        onChanged();
+        return this;
+      }
+
       // @@protoc_insertion_point(builder_scope:TextEditor1.Move)
     }
 
@@ -1278,11 +1391,12 @@ public final class MovesProtos {
       descriptor;
   static {
     java.lang.String[] descriptorData = {
-      "\n\nmove.proto\022\013TextEditor1\"\177\n\004Move\022\020\n\010bas" +
-      "eText\030\001 \001(\t\022\016\n\006userId\030\002 \001(\005\022\016\n\006moveId\030\003 " +
-      "\001(\005\022\017\n\007orderId\030\004 \001(\005\022\020\n\010moveType\030\005 \001(\005\022\014" +
-      "\n\004data\030\006 \001(\t\022\024\n\014cursorChange\030\007 \001(\005B\037\n\020lo" +
-      "cal.texteditorB\013MovesProtos"
+      "\n\nmove.proto\022\013TextEditor1\"\215\001\n\004Move\022\020\n\010ba" +
+      "seText\030\001 \001(\t\022\016\n\006userId\030\002 \001(\005\022\016\n\006moveId\030\003" +
+      " \001(\005\022\017\n\007orderId\030\004 \001(\005\022\020\n\010moveType\030\005 \001(\005\022" +
+      "\014\n\004data\030\006 \001(\t\022\024\n\014cursorChange\030\007 \001(\005\022\014\n\004u" +
+      "ndo\030\010 \001(\005B\037\n\020local.texteditorB\013MovesProt" +
+      "os"
     };
     com.google.protobuf.Descriptors.FileDescriptor.InternalDescriptorAssigner assigner =
       new com.google.protobuf.Descriptors.FileDescriptor.InternalDescriptorAssigner() {
@@ -1294,7 +1408,7 @@ public final class MovesProtos {
           internal_static_TextEditor1_Move_fieldAccessorTable = new
             com.google.protobuf.GeneratedMessage.FieldAccessorTable(
               internal_static_TextEditor1_Move_descriptor,
-              new java.lang.String[] { "BaseText", "UserId", "MoveId", "OrderId", "MoveType", "Data", "CursorChange", });
+              new java.lang.String[] { "BaseText", "UserId", "MoveId", "OrderId", "MoveType", "Data", "CursorChange", "Undo", });
           return null;
         }
       };

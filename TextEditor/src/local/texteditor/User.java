@@ -1,6 +1,8 @@
 package local.texteditor;
 
 import java.util.*;
+
+import local.texteditor.MovesProtos.Move;
 import android.widget.EditText;
 
 
@@ -62,7 +64,7 @@ public class User
   
   
   
-  protected static void Undo()
+  protected static Move Undo()
   {
 	isTextSetManually = false;  
 	  
@@ -78,30 +80,59 @@ public class User
       if (com.operation == User.Operation.ADD)
       {
         Delete();
+		Move newMove =
+				Move.newBuilder()
+				.setUserId(1) //need a user id
+				.setMoveType(2)
+				.setUndo(1)
+				.build();
+		redoList.push(undoList.pop());
+        return newMove;
       }
       else if (com.operation == User.Operation.DELETE)
       {
-    	Add(com.mes);  
+    	Add(com.mes);
+		Move newMove =
+				Move.newBuilder()
+				.setUserId(1) //need a user id
+				.setMoveType(1)
+				.setData( com.mes.toString() )
+				.setUndo(1)
+				.build();
+		redoList.push(undoList.pop());
+		return newMove;
       }
       else
       {
-    	CursorLocChangeForLocalUser(cursorLoc - com.offset);  
+    	CursorLocChangeForLocalUser(cursorLoc - com.offset);
+		Move newMove =
+				Move.newBuilder()
+				.setUserId(1) //need a user id
+				.setMoveType(3)
+				.setUndo(1)
+				.build();
+		redoList.push(undoList.pop());
+		return newMove;
       }
-      redoList.push(undoList.pop());   
     } 
     /*
      * if undo list is empty
      */
     else 
     {
-      System.out.print("Nothing to undo! "); 
+      System.out.print("Nothing to undo! ");
+      Move dummyMove = 
+    		  Move.newBuilder()
+    		  .setUserId(-1)
+    		  .build();
+      return dummyMove;
     }
-    System.out.println("# of undo/redo left: " + undoList.size() + " / " + redoList.size());
+    //System.out.println("# of undo/redo left: " + undoList.size() + " / " + redoList.size());
   }
   
   
   
-  protected static void Redo()
+  protected static Move Redo()
   {
 	isTextSetManually = false;  
 	  
@@ -114,22 +145,57 @@ public class User
       if (com.operation == User.Operation.ADD)
       {
         Add(com.mes);
+		Move newMove =
+				Move.newBuilder()
+				.setUserId(1) //need a user id
+				.setMoveType(1)
+				.setData( com.mes.toString() )
+				.setUndo(2)
+				.build();
+		redoList.push(undoList.pop());
+		undoList.push(redoList.pop());
+		return newMove;
       }
       else if (com.operation == User.Operation.DELETE)
       {
-    	Delete();  
+    	Delete();
+		Move newMove =
+				Move.newBuilder()
+				.setUserId(1) //need a user id
+				.setMoveType(2)
+				.setUndo(2)
+				.build();
+		redoList.push(undoList.pop());
+		undoList.push(redoList.pop());
+        return newMove;
+    	
       }
       else
       {
-    	CursorLocChangeForLocalUser(cursorLoc + com.offset);  
+    	CursorLocChangeForLocalUser(cursorLoc + com.offset);
+		Move newMove =
+				Move.newBuilder()
+				.setUserId(1) //need a user id
+				.setMoveType(3)
+				.setUndo(1)
+				.build();
+		redoList.push(undoList.pop());
+		undoList.push(redoList.pop());
+		return newMove;
+		
       }
-      undoList.push(redoList.pop());   
+         
     } 
     else 
     {
-      System.out.print("Nothing to redo! "); 
+    	System.out.print("Nothing to redo! "); 
+        Move dummyMove = 
+      		  Move.newBuilder()
+      		  .setUserId(-1)
+      		  .build();
+      return dummyMove;
     }
-    System.out.println("Num of undo/redo left: " + undoList.size() + " / " + redoList.size());
+    //System.out.println("Num of undo/redo left: " + undoList.size() + " / " + redoList.size());
   }
   
 }
