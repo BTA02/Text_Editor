@@ -1,117 +1,135 @@
 package local.texteditor;
 
-import java.util.Stack;
-
+import java.util.*;
 import android.widget.EditText;
 
 
 public class User 
 {
   protected static EditText to_broadcast;
-  
-  private static int cursorLoc = 0;
-  private static Stack<EditCom> 
+  protected static boolean isTextSetManually = true;
+  protected static int cursorLoc = 0;
+  protected static Stack<EditCom> 
     undoList = new Stack<EditCom> (), 
     redoList = new Stack<EditCom> ();
-  private int userIdInt; //first person is user 0, and on and on.....
+  
+  // first person is user 0, and on and on.....
+  //private int userIdInt;
+  
+  //private static Vector cursorOfUsers = new Vector (1);
   //vector[0] = where my cursor is
   
-  protected static void MoveChars(int startLoc, int length, int newLoc) 
+  public enum Operation
   {
+	  ADD, DELETE, CURSOR, INIT
+  }
 
-
-    //undoList.add(new EditCom("mov", startLoc, length, newLoc, ""));
-    
-    System.out.println("MoveChars ->" + undoList.lastElement());
+  
+  /*
+   * implementation of add, delete, cursor location change, and undo/redo
+   */
+  protected static void Add(Character msg)
+  {
+	  isTextSetManually = false;
+	  
+	  to_broadcast.getText().insert(cursorLoc, msg.toString());
+	  cursorLoc++;
+	  
+	  System.out.println("Program Add: " + msg + " @ " + (cursorLoc-1));
+  }
+ 
+  
+  
+  protected static void Delete()
+  {
+	  isTextSetManually = false;
+	  
+	  to_broadcast.getText().delete(cursorLoc-1, cursorLoc);
+	  cursorLoc--;
+	  
+	  System.out.println("Program Delete " + "@ " + (cursorLoc+1));
   }
   
-  protected static void CursorLocChange(int newCursorLoc)
+  
+  
+  protected static void CursorLocChangeForLocalUser(int newCursorLoc)
   {
     to_broadcast.setSelection(newCursorLoc);
     cursorLoc = newCursorLoc;
-    System.out.println("CursurLocChange ->" + newCursorLoc);
+    
+    System.out.println("CursurLocChange -> " + newCursorLoc);
   }
+  
+  
   
   protected static void Undo()
   {
-
+	isTextSetManually = false;  
+	  
+	/*
+	 * if undoList is not empty  
+	 */
     if (!undoList.empty())
     {
       EditCom com = undoList.lastElement();
-      System.out.println("Undo ->" + com);
-      if (com.command == "mov")
+      
+      System.out.println("user manual undo: " + com.operation + com.mes + com.offset);
+      
+      if (com.operation == User.Operation.ADD)
       {
-        MoveChars(com.moveToLoc, com.length, com.startLoc);
+        Delete();
       }
-      else if (com.command == "add")
+      else if (com.operation == User.Operation.DELETE)
       {
-    	  to_broadcast.getText().insert(com.startLoc, com.previousMes);
+    	Add(com.mes);  
       }
-      else if (com.command == "del")
+      else
       {
-    	  
+    	CursorLocChangeForLocalUser(cursorLoc - com.offset);  
       }
       redoList.push(undoList.pop());   
     } 
+    /*
+     * if undo list is empty
+     */
     else 
     {
-      System.out.println("Nothing to undo"); 
+      System.out.print("Nothing to undo! "); 
     }
+    System.out.println("# of undo/redo left: " + undoList.size() + " / " + redoList.size());
   }
+  
+  
   
   protected static void Redo()
   {
+	isTextSetManually = false;  
+	  
     if (!redoList.empty())
     {
       EditCom com = redoList.lastElement();
-      System.out.println("Redo ->" + com);
-      if (com.command == "mov")
+      
+      System.out.println("user manual redo: " + com.operation + com.mes + com.offset);
+      
+      if (com.operation == User.Operation.ADD)
       {
-        MoveChars(com.startLoc, com.length, com.moveToLoc);
+        Add(com.mes);
+      }
+      else if (com.operation == User.Operation.DELETE)
+      {
+    	Delete();  
+      }
+      else
+      {
+    	CursorLocChangeForLocalUser(cursorLoc + com.offset);  
       }
       undoList.push(redoList.pop());   
     } 
     else 
     {
-      System.out.println("Nothing to redo"); 
+      System.out.print("Nothing to redo! "); 
     }
-  }
-  
-  protected static void Add(CharSequence s, int start, int before,
-			int count, String mes)
-  {
-	  //undoList.add(new EditCom("add", start, count, (start+(count-before) ), cChars ));
-	  undoList.add(new EditCom("add", start, count, (start+count), mes) );
-	  //edit everything locally, then send out the new data
-	  /*
-	   * for each cursor in vector<cursors>
-	   * 	if (vector[i] >= start)
-	   * 		vector[i] = vector[i] + (after - count)
-	   * send out the actual string to the server
-	   * myClient.broadcast(broadcastText.getText().toString().getBytes(), "lol");
-	   * myClient.broadcast(s.toString().getBytes(), "lol");
-	   */
-  }
- 
-  protected static void Del(CharSequence s, int start, int before,
-			int count, String cChars)
-  {
-	  //undoList.add(new EditCom("del", start, count, (start+(count-before) ), cChars ) );
-	  //edit everything locally, then send out the new data
-  }
-  
-  protected static void Replace(CharSequence s, int start, int before,
-			int count, String pMes, String nMes) //not done yet
-  {
-	  //count is what i'm adding
-	  //filled start-end with what?
-	  //start = start
-	  //end = start+before
-	  //filled with = nMes
-	  //4th arg is where I move to
-	  //String str = s.toString();
-	  //undoList.add(new EditCom("rep", start, count, (start+count), pMes, nMes, str ) );
-	  //edit everything locally, then send out the new data
+    System.out.println("Num of undo/redo left: " + undoList.size() + " / " + redoList.size());
   }
   
 }
