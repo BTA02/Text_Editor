@@ -9,29 +9,22 @@
     android:paddingTop="@dimen/activity_vertical_margin"
     tools:context=".MainActivity" >
 
-    <EditText
-        android:id="@+id/to_broadcast"
-        android:layout_width="fill_parent"
-        android:layout_height="wrap_content"
-        android:hint="@string/start_typing" />
-
-     <Button
+    <Button
         android:id="@+id/RedoButton"
         style="?android:attr/buttonStyleSmall"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_alignBaseline="@+id/UndoButton"
         android:layout_alignBottom="@+id/UndoButton"
-        android:layout_toRightOf="@+id/UndoButton"
+        android:layout_alignRight="@+id/to_broadcast"
         android:text="Redo" />
 
     <Button
         android:id="@+id/broadcast_button"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_alignBaseline="@+id/button1"
-        android:layout_alignParentBottom="true"
-        android:layout_alignRight="@+id/to_broadcast"
+        android:layout_alignTop="@+id/RedoButton"
+        android:layout_centerHorizontal="true"
         android:text="@string/braodcast_text" />
 
     <Button
@@ -40,7 +33,51 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_alignLeft="@+id/to_broadcast"
-        android:layout_alignTop="@+id/broadcast_button"
+        android:layout_alignParentTop="true"
         android:text="Undo" />
+
+    <EditText
+        android:id="@+id/to_broadcast"
+        android:layout_width="fill_parent"
+        android:layout_height="wrap_content"
+        android:layout_below="@+id/RedoButton"
+        android:layout_centerHorizontal="true"
+        android:layout_marginTop="13dp"
+        android:ems="10"
+        android:hint="@string/start_typing" />
+
+    <Button
+        android:id="@+id/LeaveButton"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignBaseline="@+id/CreateButton"
+        android:layout_alignBottom="@+id/CreateButton"
+        android:layout_alignParentRight="true"
+        android:text="@string/leave_session" />
+
+    <Button
+        android:id="@+id/CreateButton"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignLeft="@+id/to_broadcast"
+        android:layout_alignParentBottom="true"
+        android:text="@string/create_session" />
+
+    <Button
+        android:id="@+id/JoinButton"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignBaseline="@+id/LeaveButton"
+        android:layout_alignBottom="@+id/LeaveButton"
+        android:layout_centerHorizontal="true"
+        android:text="@string/join_session" />
+
+    <CheckBox
+        android:id="@+id/withBaseFileCheckBox"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_above="@+id/JoinButton"
+        android:layout_centerHorizontal="true"
+        android:text="With base file" />
 
 </RelativeLayout>

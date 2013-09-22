@@ -25,12 +25,15 @@ public final class R {
         public static final int ic_launcher=0x7f020001;
     }
     public static final class id {
-        public static final int RedoButton=0x7f080001;
-        public static final int UndoButton=0x7f080002;
-        public static final int action_settings=0x7f080005;
+        public static final int CreateButton=0x7f080005;
+        public static final int JoinButton=0x7f080006;
+        public static final int LeaveButton=0x7f080004;
+        public static final int RedoButton=0x7f080000;
+        public static final int UndoButton=0x7f080001;
+        public static final int action_settings=0x7f080008;
         public static final int broadcast_button=0x7f080003;
-        public static final int button1=0x7f080004;
-        public static final int to_broadcast=0x7f080000;
+        public static final int to_broadcast=0x7f080002;
+        public static final int withBaseFileCheckBox=0x7f080007;
     }
     public static final class layout {
         public static final int activity_display_message=0x7f030000;
@@ -44,9 +47,12 @@ public final class R {
         public static final int action_settings=0x7f040005;
         public static final int app_name=0x7f040000;
         public static final int braodcast_text=0x7f04000b;
+        public static final int create_session=0x7f04000c;
         public static final int edit_redo=0x7f04000a;
         public static final int edit_undo=0x7f040009;
         public static final int hello_world=0x7f040001;
+        public static final int join_session=0x7f04000d;
+        public static final int leave_session=0x7f04000e;
         public static final int menu_settings=0x7f040002;
         public static final int send_button=0x7f040007;
         public static final int start_typing=0x7f040006;
