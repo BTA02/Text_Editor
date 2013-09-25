@@ -257,9 +257,7 @@ public class MainActivity extends Activity
 						
 						startTime = System.currentTimeMillis();
 						continuousCount++;
-						Log.i("weird: ", "start num: " + start);
-						Log.i("weird:", "before num: " + before);
-						Log.i("weird:", "count num: " + count);
+						
 						continuousString += s.toString().substring(start, start+count);
 						//System.out.println("Let's test here: " + continuousString);
 					}
@@ -436,16 +434,19 @@ public class MainActivity extends Activity
 							Log.i("print", "String added/deleted: " + moveData);
 							Log.i("print", "offset value: " + offsetValue);
 							Log.i("print", "undo value: " + undoValue);
+							applyMove(indexOfMover, moveType, moveData, offsetValue, undoValue, recMoveId);
 						}
 						//---cursorChange----
 						else //should be moveType 3
 						{
+							moveData = ""; //because it doesn't matter
 							Log.i("print", "cursorChange");
 							Log.i("print", "UserID who made move: " + userWhoMadeMove);
 							Log.i("print", "offset value: " + offsetValue);
 							Log.i("print", "undo value: " + undoValue);
+							applyMove(indexOfMover, moveType, moveData, offsetValue, undoValue, recMoveId);
 						}
-						//DON'T FORGET TO UPDATE CURSOR
+						//DON'T FORGET TO UPDATE CURSORS
 					} 
 	        		catch (InvalidProtocolBufferException e) 
 	        		{
@@ -753,7 +754,7 @@ public class MainActivity extends Activity
 		  //add/delete the characters
 		  //update cursor locations
 		  int startLoc = cursors.get(indexOfUser).cursorLoc;
-		  Log.i("apply", "start at: " + startLoc);
+		  //Log.i("apply", "start at: " + startLoc);
 		  //---add-------------------------
 		  if (mT == 1)
 		  {
@@ -765,7 +766,7 @@ public class MainActivity extends Activity
 			  //Log.i("apply", "final string?: " + serverCopy.substring(0,startLoc)+data+serverCopy.substring(startLoc, serverCopy.length()) );
 			  
 			  serverCopy = serverCopy.substring(0,startLoc)+data+serverCopy.substring(startLoc, serverCopy.length());
-			  Log.i("apply", serverCopy);
+			  //Log.i("apply", serverCopy);
 			  //now the server copy is properly updated every time...
 			  if (mid == lastLocalMove)
 			  {
@@ -782,6 +783,49 @@ public class MainActivity extends Activity
 			  //User.cursorLoc = cursors.get(0).cursorLoc; //keep things consistent
 			  
 		  } //-----end add-------------------
+		  
+		  else if (mT == 2)//-------delete
+		  {
+			  //Log.i("apply", "delete mT: " + mT);
+			  //Log.i("apply", "delete data: " + data);
+			  //Log.i("apply", "delete offset: " + offset);
+			  serverCopy = serverCopy.substring(0,startLoc-offset) + serverCopy.substring(startLoc, serverCopy.length());
+			  for(int i = 0; i < cursors.size(); i++) //update all locations (works)
+			  {
+				  if (cursors.get(i).cursorLoc >= startLoc)
+				  {
+					  cursors.get(i).cursorLoc -= offset;
+				  }
+				  if (cursors.get(i).cursorLoc < startLoc && cursors.get(i).cursorLoc > startLoc-offset )
+				  {
+					  cursors.get(i).cursorLoc = startLoc - offset;
+				  }
+			  }
+			  
+		  }//--------------end delete-------------
+		  else //-------cursor move----------------
+		  {
+			  //Log.i("apply", "changing cursor location");
+			  //Log.i("apply", "who moved: " + cursors.get(indexOfUser).userID);
+			  //Log.i("apply", "move it how far?: " + offset); //I hope this is relative, and not indexed
+			  cursors.get(indexOfUser).cursorLoc += offset;
+			  
+			  //for (int i = 0; i < cursors.size(); i++)
+			  //{
+				  //Log.i("apply", "final location1: " + cursors.get(i).cursorLoc );
+				  
+			  //}
+			  //Log.i("apply", "final location2: " + User.cursorLoc);
+			  
+			  
+		  } //-------end cursor move---------------
+		  Log.i("apply", "final server copy: " + serverCopy);
+		  for (int i = 0; i < cursors.size(); i++)
+		  {
+			  Log.i("apply", "final locations of" + i + ": " + cursors.get(i).cursorLoc );
+		  }
+		  
+		  
 		  
 	  }
 	
