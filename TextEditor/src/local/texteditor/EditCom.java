@@ -8,12 +8,14 @@ public class EditCom
   User.Operation operation;
   public int offset;
   public String mes;
+  public int moveId;
   
-  public EditCom(User.Operation operationT, String mesT, int offsetT)
+  public EditCom(User.Operation operationT, String mesT, int offsetT, int mid)
   {
     operation = operationT;
     mes = mesT;
     offset = offsetT;  
+    moveId = mid;
   }
   
   public Move generateMoveMes(int undo)
@@ -26,13 +28,16 @@ public class EditCom
 					.setData(this.mes)
 					.setCursorChange(this.offset)
 					.setUndo(undo)
+					.setMoveId(this.moveId)
 					.build();
+	
 		else if(this.operation == User.Operation.DELETE)
 			move = Move.newBuilder()
 					.setUserId(User.Id)//need a user id
 					.setMoveType(2)
 					.setCursorChange(this.offset)
 					.setUndo(undo)
+					.setMoveId(this.moveId)
 					.build();
 		else
 			move = Move.newBuilder()
@@ -40,6 +45,7 @@ public class EditCom
 					.setMoveType(3)
 					.setCursorChange(this.offset)
 					.setUndo(undo)
+					.setMoveId(this.moveId)
 					.build();	
 		return move;  
   }

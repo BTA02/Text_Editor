@@ -1,13 +1,17 @@
 package local.texteditor;
 
-import java.io.*;
-import java.util.*;
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Random;
+import java.util.Vector;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import edu.umich.imlc.android.common.Utils;
-import edu.umich.imlc.collabrify.client.*;
-import edu.umich.imlc.collabrify.client.exceptions.CollabrifyException;
+
 import local.texteditor.MovesProtos.Move;
+import android.R.xml;
 import android.app.Activity;
 import android.app.AlertDialog;
 import android.content.DialogInterface;
@@ -18,20 +22,35 @@ import android.util.Log;
 import android.view.Menu;
 import android.view.View;
 import android.view.View.OnClickListener;
-import android.widget.*;
+import android.widget.Button;
+import android.widget.CheckBox;
+import android.widget.EditText;
+
+import com.google.protobuf.InvalidProtocolBufferException;
+
+import edu.umich.imlc.collabrify.client.CollabrifyAdapter;
+import edu.umich.imlc.collabrify.client.CollabrifyClient;
+import edu.umich.imlc.collabrify.client.CollabrifyListener;
+import edu.umich.imlc.collabrify.client.CollabrifySession;
+import edu.umich.imlc.collabrify.client.exceptions.CollabrifyException;
 
 
 public class MainActivity extends Activity 
 {
 	private final String TAG1 = "adds";
 	private final String TAG2 = "dels";
-	public final static String EXTRA_MESSAGE = "local.myfirstapp.message";
 	private EditText to_broadcast;
 	private String continuousString = "";
 	private int continuousCount = 0;
 	private long startTime;
-	Vector cursors = new Vector();
-	Vector moves = new Vector();
+	Cursor myCursor;
+	
+	Vector<Cursor> cursors = new Vector<Cursor>();
+
+	//for receiving messages handling
+	private String serverCopy = ""; //this is the "server" copy of the text
+	private int lastLocalMove;
+	
 	
 	private static final Level LOGGING_LEVEL = Level.ALL;	
 
@@ -54,6 +73,16 @@ public class MainActivity extends Activity
 		super.onCreate(savedInstanceState);
 		setContentView(R.layout.activity_main);
 		
+		//BUG HERE
+		Random userIDgen = new Random();
+		myCursor = new Cursor(userIDgen.nextInt(), 0);
+		if (myCursor.userID < 0)
+		{
+			myCursor.userID = myCursor.userID * -1;
+		}
+		cursors.add(myCursor); //now my cursor is the first one in the vector, excellent.
+		User.Id = myCursor.userID;
+		Log.i("success", "user info: " + cursors.get(0).userID + " " + cursors.get(0).cursorLoc);
 		
 		
 		/*
@@ -61,8 +90,6 @@ public class MainActivity extends Activity
 		 */
 		to_broadcast = (EditText) findViewById(R.id.to_broadcast);
 	    User.to_broadcast = to_broadcast;
-	    
-	    
 	    
 	    /*
 	     * timer thread
@@ -90,7 +117,7 @@ public class MainActivity extends Activity
 	    undoButton.setOnClickListener(new OnClickListener()
 	    {
 	    	@Override
-	    	public void onClick(View v)
+	    	public void onClick(View v) //still need moveID here
 	    	{
 	    		if (continuousCount != 0)
 	    			generateInsertDelete(); 
@@ -99,13 +126,24 @@ public class MainActivity extends Activity
 	    		if (com != null)
 	    		{	
 	    			Move retmove = com.generateMoveMes(1);
+	    			
+	    			try 
+	    			{	
+	    				myClient.broadcast(retmove.toByteArray(), "undo");
+	    				Log.i("success", "undo broadcasting success"); //have to change cursors on an undo
+	    			} 
+	    			catch (CollabrifyException e) 
+	    			{
+	    				Log.i("failed", "undo broadcasting failed");
+	    				e.printStackTrace();
+	    			}
 	    		}   
 	    	}
 	    });
 	    redoButton.setOnClickListener(new OnClickListener()
 	    {
 	    	@Override
-	    	public void onClick(View v)
+	    	public void onClick(View v) //still need moveID here
 	    	{
 	    		if (continuousCount != 0)
 	    			generateInsertDelete(); 
@@ -114,6 +152,16 @@ public class MainActivity extends Activity
 	    		if (com != null)
 	    		{	
 	    			Move retmove = com.generateMoveMes(2);
+	    			try 
+	    			{	
+	    				myClient.broadcast(retmove.toByteArray(), "redo");
+	    				Log.i("success", "redo broadcasting success");
+	    			} 
+	    			catch (CollabrifyException e) 
+	    			{
+	    				Log.i("failed", "redo broadcasting failed");
+	    				e.printStackTrace();
+	    			}
 	    		}  
 	    	}
 	    });
@@ -129,17 +177,32 @@ public class MainActivity extends Activity
 	    to_broadcast.setOnClickListener(new View.OnClickListener() 
 	    {	
 	    	@Override
-	    	public void onClick(View v) 
+	    	public void onClick(View v) //for cursor changes
 	    	{  
 	    		if (continuousCount != 0)
 	    			generateInsertDelete(); 
 	    		
 	    		int cursorNewLoc = to_broadcast.getSelectionEnd();
 	    		int offset = cursorNewLoc - User.cursorLoc;
-	    		User.CursorChange(User.Id, offset);   
-	    		EditCom com = new EditCom(User.Operation.CURSOR, null, offset);
+	    		User.CursorChange(User.Id, offset); 
+	    		
+	    		Random rid = new Random();
+				int mid = rid.nextInt();
+				
+	    		EditCom com = new EditCom(User.Operation.CURSOR, null, offset, mid);
+	    		lastLocalMove = mid;
 	    		User.undoList.add(com);
 	    		Move retMove = com.generateMoveMes(0);
+				try 
+				{	
+					myClient.broadcast(retMove.toByteArray(), "cur");
+					Log.i("success", "cursor broadcasting success");
+				} 
+				catch (CollabrifyException e) 
+				{
+					Log.i("failed", "cursor broadcasting failed");
+					e.printStackTrace();
+				}
 	    		
 	    		User.redoList.clear();
 	    	}
@@ -189,18 +252,16 @@ public class MainActivity extends Activity
 					{}
 					else if (count > before) //this is an add
 					{
-						Log.i(TAG1, "sequence: " + s);
-						Log.i(TAG1, "start: " + start);
-						Log.i(TAG1, "before: " + before);
-						Log.i(TAG1, "count: " + count);
-						Log.i(TAG1, "characters added: " + s.toString().substring(start, (start+count)) );
-					
 			    		if (continuousCount < 0)
-			    			generateInsertDelete(); 
+			    			generateInsertDelete();
 						
 						startTime = System.currentTimeMillis();
 						continuousCount++;
+						Log.i("weird: ", "start num: " + start);
+						Log.i("weird:", "before num: " + before);
+						Log.i("weird:", "count num: " + count);
 						continuousString += s.toString().substring(start, start+count);
+						//System.out.println("Let's test here: " + continuousString);
 					}
 					else //this is a full replace
 					{}
@@ -256,7 +317,7 @@ public class MainActivity extends Activity
 
 	    
 	    
-	    joinSessionButton.setOnClickListener(new OnClickListener()
+	    joinSessionButton.setOnClickListener(new OnClickListener() //I think we can hardcode this stuff?
 	    {
 
 	      @Override
@@ -310,18 +371,89 @@ public class MainActivity extends Activity
 	          }
 	        });
 	      }
-
+	      //HERE2 for the command+f
 	      @Override
 	      public void onReceiveEvent(final long orderId, int subId,
 	          String eventType, final byte[] data)
 	      {
 	        System.out.println("RECEIVED SUB ID:" + subId);
+	        Log.i("success", "received correctly " + eventType.toString());
 	        runOnUiThread(new Runnable()
 	        {
 	        	@Override
-				public void run() {
-					// TODO Auto-generated method stub			
+				public void run() 
+	        	{
+					//so what do we want to do when we receieve a move?
+	        		//Log.i("success", "received correctly " + eventType.toString());
+	        		try 
+	        		{
+						Move latestMove = Move.parseFrom(data); //gets the data from the move
+						int userWhoMadeMove = latestMove.getUserId();
+						int indexOfMover = 0; //defaulted as the person who made the move
+						String moveData;
+						int moveType = latestMove.getMoveType();
+						int offsetValue = latestMove.getCursorChange();
+						int undoValue = latestMove.getUndo();
+						int recMoveId = latestMove.getMoveId();
+						int cursStartLoc = 0;
+						boolean found = false;
+						for (int q = 0; q < cursors.size(); q++) //I wish we had a better way
+						{
+							if (cursors.get(q).userID == userWhoMadeMove)
+							{
+								cursStartLoc = cursors.get(q).cursorLoc;
+								indexOfMover = q;
+								found = true;
+							}
+						}
+						if (found == false) //add new cursor to vector
+						{
+							Cursor newCursor = new Cursor(userWhoMadeMove, 0);
+							indexOfMover = cursors.size()-1;
+						}
+						Log.i("print", "starting cursor loc: " + cursStartLoc);
+						//---add-----
+						if (moveType == 1)
+						{
+							moveData = latestMove.getData();
+							Log.i("print", "add");
+							Log.i("print", "UserID who made move: " + userWhoMadeMove);
+							Log.i("print", "String added/deleted: " + moveData);
+							Log.i("print", "offset value: " + offsetValue);
+							Log.i("print", "undo value: " + undoValue);
+							applyMove(indexOfMover, moveType, moveData, offsetValue, undoValue, recMoveId);
+							//cursors.get(indexOfMover).cursorLoc += offsetValue;
+							
+							
+							
+						}
+						//---delete----
+						else if (moveType == 2)
+						{
+							moveData = latestMove.getData();
+							Log.i("print", "delete");
+							Log.i("print", "UserID who made move: " + userWhoMadeMove);
+							Log.i("print", "String added/deleted: " + moveData);
+							Log.i("print", "offset value: " + offsetValue);
+							Log.i("print", "undo value: " + undoValue);
+						}
+						//---cursorChange----
+						else //should be moveType 3
+						{
+							Log.i("print", "cursorChange");
+							Log.i("print", "UserID who made move: " + userWhoMadeMove);
+							Log.i("print", "offset value: " + offsetValue);
+							Log.i("print", "undo value: " + undoValue);
+						}
+						//DON'T FORGET TO UPDATE CURSOR
+					} 
+	        		catch (InvalidProtocolBufferException e) 
+	        		{
+	        			Log.i("failed", "bad parse attempt: " + e);
+						e.printStackTrace();
+					}
 				}
+
 	        });
 	      }
 
@@ -352,6 +484,7 @@ public class MainActivity extends Activity
 	                  sessionId = sessionList.get(which).id();
 	                  sessionName = sessionList.get(which).name();
 	                  myClient.joinSession(sessionId, null);
+	                  //everyone gets a random userId
 	                }
 	                catch( CollabrifyException e )
 	                {
@@ -376,6 +509,7 @@ public class MainActivity extends Activity
 	      {
 	        System.out.println("Session created, id: " + id);
 	        sessionId = id;
+	        
 	        runOnUiThread(new Runnable()
 	        {
 
@@ -396,7 +530,7 @@ public class MainActivity extends Activity
 	      @Override
 	      public void onSessionJoined(long maxOrderId, long baseFileSize)
 	      {
-	        System.out.println("Session Joined");
+	        Log.i("success", "joined session");
 	        if( baseFileSize > 0 )
 	        {
 	          //initialize buffer to receive base file
@@ -542,25 +676,59 @@ public class MainActivity extends Activity
 	void generateInsertDelete()
 	{
 		Move retMove;
-		if (continuousCount > 0) // add
+		if (continuousCount > 0) // add -- decently tested
 		{
+			int start = User.cursorLoc; //I can't forget to update User.cursorLoc
+			Log.i("success", "start: " + start);
+			
+			myCursor.cursorLoc = User.cursorLoc;
 			User.cursorLoc += continuousCount;
 			
-			System.out.println("user manual ADD: " + continuousString + ", after add, cursor @ " + User.cursorLoc);
 			
-			EditCom com = new EditCom(User.Operation.ADD, continuousString, continuousCount);
+			System.out.println("user manual ADD: " + continuousString + ", after add, cursor @ " + User.cursorLoc);
+			Log.i("success", "add: " + continuousString + " starting at: " + User.cursorLoc);
+			
+			Random rid = new Random();
+			int mid = rid.nextInt();
+			
+			EditCom com = new EditCom(User.Operation.ADD, continuousString, continuousCount, mid);
+			lastLocalMove = mid;
 			User.undoList.add(com);
 			retMove = com.generateMoveMes(0);
+			try 
+			{	
+				myClient.broadcast(retMove.toByteArray(), "add"); //I only want to transfer the exact string I want
+				//Log.i("success", "add broadcasting success: " + retMove.getData() );
+			} 
+			catch (CollabrifyException e) 
+			{
+				Log.i("failed", "add broadcasting failed");
+				e.printStackTrace();
+			}
 		}
 		else // delete
 		{
 			User.cursorLoc += continuousCount;
 			
-			System.out.println("user manual DELETE: " + continuousString + ", after delete, cursor @ " + User.cursorLoc);
+			//System.out.println("user manual DELETE: " + continuousString + ", after delete, cursor @ " + User.cursorLoc);
+			Random rid = new Random();
+			int mid = rid.nextInt();
 			
-			EditCom com = new EditCom(User.Operation.DELETE, continuousString, -continuousCount);
+			EditCom com = new EditCom(User.Operation.DELETE, continuousString, -continuousCount, mid);
+			
 			User.undoList.add(com);
+			lastLocalMove = mid;
 			retMove = com.generateMoveMes(0);
+			try 
+			{	
+				myClient.broadcast(retMove.toByteArray(), "del");
+				Log.i("success", "delete broadcasting success");
+			} 
+			catch (CollabrifyException e) 
+			{
+				Log.i("failed", "broadcasting failed");
+				e.printStackTrace();
+			}
 		}
 		
 		continuousCount = 0;
@@ -578,6 +746,43 @@ public class MainActivity extends Activity
 	  {
 	    getMenuInflater().inflate(R.menu.main, menu);
 	    return true;
+	  }
+	  
+	  private void applyMove(int indexOfUser, int mT, String data, int offset, int undo, int mid) 
+	  {
+		  //add/delete the characters
+		  //update cursor locations
+		  int startLoc = cursors.get(indexOfUser).cursorLoc;
+		  Log.i("apply", "start at: " + startLoc);
+		  //---add-------------------------
+		  if (mT == 1)
+		  {
+			  //Log.i("apply", "add mT: " + mT);
+			  //Log.i("apply", "add data: " + data);
+			  //Log.i("apply", "add length: " + offset);
+			  //Log.i("apply", "add undo: " + undo);
+			  //serverCopy = "blah";
+			  //Log.i("apply", "final string?: " + serverCopy.substring(0,startLoc)+data+serverCopy.substring(startLoc, serverCopy.length()) );
+			  
+			  serverCopy = serverCopy.substring(0,startLoc)+data+serverCopy.substring(startLoc, serverCopy.length());
+			  Log.i("apply", serverCopy);
+			  //now the server copy is properly updated every time...
+			  if (mid == lastLocalMove)
+			  {
+				  //update the displayed copy when this happens
+			  }
+			  
+			  for(int i = 0; i < cursors.size(); i++) //update all locations (works)
+			  {
+				  if (cursors.get(i).cursorLoc >= startLoc)
+				  {
+					  cursors.get(i).cursorLoc += offset;
+				  }
+			  }
+			  //User.cursorLoc = cursors.get(0).cursorLoc; //keep things consistent
+			  
+		  } //-----end add-------------------
+		  
 	  }
 	
 	
