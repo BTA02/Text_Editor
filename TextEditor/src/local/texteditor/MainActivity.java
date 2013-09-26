@@ -11,7 +11,6 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import local.texteditor.MovesProtos.Move;
-import android.R.xml;
 import android.app.Activity;
 import android.app.AlertDialog;
 import android.content.DialogInterface;
@@ -25,6 +24,7 @@ import android.view.View.OnClickListener;
 import android.widget.Button;
 import android.widget.CheckBox;
 import android.widget.EditText;
+import android.widget.TextView;
 
 import com.google.protobuf.InvalidProtocolBufferException;
 
@@ -43,6 +43,9 @@ public class MainActivity extends Activity
 	private String continuousString = "";
 	private int continuousCount = 0;
 	private long startTime;
+	boolean lastMoveSeen = true;
+	
+	
 	Cursor myCursor;
 	
 	Vector<Cursor> cursors = new Vector<Cursor>();
@@ -73,7 +76,7 @@ public class MainActivity extends Activity
 		super.onCreate(savedInstanceState);
 		setContentView(R.layout.activity_main);
 		
-		//BUG HERE
+		
 		Random userIDgen = new Random();
 		myCursor = new Cursor(userIDgen.nextInt(), 0);
 		if (myCursor.userID < 0)
@@ -82,6 +85,7 @@ public class MainActivity extends Activity
 		}
 		cursors.add(myCursor); //now my cursor is the first one in the vector, excellent.
 		User.Id = myCursor.userID;
+		
 		Log.i("success", "user info: " + cursors.get(0).userID + " " + cursors.get(0).cursorLoc);
 		
 		
@@ -102,7 +106,7 @@ public class MainActivity extends Activity
 	 			{
 	 				if (System.currentTimeMillis() - startTime >= 600 
 	 					&& continuousCount != 0)
-	 					generateInsertDelete(); 
+	 					generateInsertDelete();
 	 			}
 	 		}
 	 	}.start();
@@ -126,7 +130,7 @@ public class MainActivity extends Activity
 	    		if (com != null)
 	    		{	
 	    			Move retmove = com.generateMoveMes(1);
-	    			
+	    			//don't forget about seen moves
 	    			try 
 	    			{	
 	    				myClient.broadcast(retmove.toByteArray(), "undo");
@@ -180,7 +184,9 @@ public class MainActivity extends Activity
 	    	public void onClick(View v) //for cursor changes
 	    	{  
 	    		if (continuousCount != 0)
+	    		{
 	    			generateInsertDelete(); 
+	    		}
 	    		
 	    		int cursorNewLoc = to_broadcast.getSelectionEnd();
 	    		int offset = cursorNewLoc - User.cursorLoc;
@@ -195,6 +201,7 @@ public class MainActivity extends Activity
 	    		Move retMove = com.generateMoveMes(0);
 				try 
 				{	
+					lastMoveSeen = false;
 					myClient.broadcast(retMove.toByteArray(), "cur");
 					Log.i("success", "cursor broadcasting success");
 				} 
@@ -224,19 +231,26 @@ public class MainActivity extends Activity
 				{
 					if (count > after) //delete
 					{
-						Log.i(TAG2, "sequence: " + s);
-						Log.i(TAG2, "start: " + start);
-						Log.i(TAG2, "count: " + count);
-						Log.i(TAG2, "after: " + after);
-						Log.i(TAG2, "characters deleted: " + s.toString().substring(start, start+count) );			
+						//Log.i(TAG2, "sequence: " + s);
+						//Log.i(TAG2, "start: " + start);
+						//Log.i(TAG2, "count: " + count);
+						//Log.i(TAG2, "after: " + after);
+						//Log.i(TAG2, "characters deleted: " + s.toString().substring(start, start+count) );			
 					
 			    		if (continuousCount > 0)
+			    		{
+			    			Log.i("follow", "generating delete");
 			    			generateInsertDelete(); 
+			    		}
 						
 						startTime = System.currentTimeMillis();
 						continuousCount--;
 						continuousString = s.toString().substring(start, start+count) + continuousString;
 					}
+				}
+				else
+				{
+					User.isTextSetManually = true;
 				}
 			}
 
@@ -253,7 +267,10 @@ public class MainActivity extends Activity
 					else if (count > before) //this is an add
 					{
 			    		if (continuousCount < 0)
+			    		{
+			    			Log.i("follow", "generating add");
 			    			generateInsertDelete();
+			    		}
 						
 						startTime = System.currentTimeMillis();
 						continuousCount++;
@@ -369,6 +386,7 @@ public class MainActivity extends Activity
 	          }
 	        });
 	      }
+	      
 	      //HERE2 for the command+f
 	      @Override
 	      public void onReceiveEvent(final long orderId, int subId,
@@ -381,8 +399,6 @@ public class MainActivity extends Activity
 	        	@Override
 				public void run() 
 	        	{
-					//so what do we want to do when we receieve a move?
-	        		//Log.i("success", "received correctly " + eventType.toString());
 	        		try 
 	        		{
 						Move latestMove = Move.parseFrom(data); //gets the data from the move
@@ -395,6 +411,7 @@ public class MainActivity extends Activity
 						int recMoveId = latestMove.getMoveId();
 						int cursStartLoc = 0;
 						boolean found = false;
+						
 						for (int q = 0; q < cursors.size(); q++) //I wish we had a better way
 						{
 							if (cursors.get(q).userID == userWhoMadeMove)
@@ -404,12 +421,14 @@ public class MainActivity extends Activity
 								found = true;
 							}
 						}
+						
 						if (found == false) //add new cursor to vector
 						{
 							Cursor newCursor = new Cursor(userWhoMadeMove, 0);
 							indexOfMover = cursors.size()-1;
 						}
-						Log.i("print", "starting cursor loc: " + cursStartLoc);
+						
+						//Log.i("print", "starting cursor loc: " + cursStartLoc);
 						//---add-----
 						if (moveType == 1)
 						{
@@ -420,6 +439,8 @@ public class MainActivity extends Activity
 							Log.i("print", "offset value: " + offsetValue);
 							Log.i("print", "undo value: " + undoValue);
 							applyMove(indexOfMover, moveType, moveData, offsetValue, undoValue, recMoveId);
+							
+							
 							//cursors.get(indexOfMover).cursorLoc += offsetValue;
 							
 							
@@ -428,6 +449,7 @@ public class MainActivity extends Activity
 						//---delete----
 						else if (moveType == 2)
 						{
+							
 							moveData = latestMove.getData();
 							Log.i("print", "delete");
 							Log.i("print", "UserID who made move: " + userWhoMadeMove);
@@ -445,6 +467,7 @@ public class MainActivity extends Activity
 							Log.i("print", "offset value: " + offsetValue);
 							Log.i("print", "undo value: " + undoValue);
 							applyMove(indexOfMover, moveType, moveData, offsetValue, undoValue, recMoveId);
+							
 						}
 						//DON'T FORGET TO UPDATE CURSORS
 					} 
@@ -698,6 +721,7 @@ public class MainActivity extends Activity
 			retMove = com.generateMoveMes(0);
 			try 
 			{	
+				lastMoveSeen = false;
 				myClient.broadcast(retMove.toByteArray(), "add"); //I only want to transfer the exact string I want
 				//Log.i("success", "add broadcasting success: " + retMove.getData() );
 			} 
@@ -722,6 +746,7 @@ public class MainActivity extends Activity
 			retMove = com.generateMoveMes(0);
 			try 
 			{	
+				lastMoveSeen = false;
 				myClient.broadcast(retMove.toByteArray(), "del");
 				Log.i("success", "delete broadcasting success");
 			} 
@@ -751,28 +776,12 @@ public class MainActivity extends Activity
 	  
 	  private void applyMove(int indexOfUser, int mT, String data, int offset, int undo, int mid) 
 	  {
-		  //add/delete the characters
-		  //update cursor locations
 		  int startLoc = cursors.get(indexOfUser).cursorLoc;
-		  //Log.i("apply", "start at: " + startLoc);
-		  //---add-------------------------
+		  
 		  if (mT == 1)
 		  {
-			  //Log.i("apply", "add mT: " + mT);
-			  //Log.i("apply", "add data: " + data);
-			  //Log.i("apply", "add length: " + offset);
-			  //Log.i("apply", "add undo: " + undo);
-			  //serverCopy = "blah";
-			  //Log.i("apply", "final string?: " + serverCopy.substring(0,startLoc)+data+serverCopy.substring(startLoc, serverCopy.length()) );
-			  
-			  serverCopy = serverCopy.substring(0,startLoc)+data+serverCopy.substring(startLoc, serverCopy.length());
-			  //Log.i("apply", serverCopy);
-			  //now the server copy is properly updated every time...
-			  if (mid == lastLocalMove)
-			  {
-				  //update the displayed copy when this happens
-			  }
-			  
+			  serverCopy = serverCopy.substring(0,startLoc) + data + serverCopy.substring(startLoc, serverCopy.length());
+
 			  for(int i = 0; i < cursors.size(); i++) //update all locations (works)
 			  {
 				  if (cursors.get(i).cursorLoc >= startLoc)
@@ -780,16 +789,13 @@ public class MainActivity extends Activity
 					  cursors.get(i).cursorLoc += offset;
 				  }
 			  }
-			  //User.cursorLoc = cursors.get(0).cursorLoc; //keep things consistent
 			  
-		  } //-----end add-------------------
+		  } 
 		  
-		  else if (mT == 2)//-------delete
+		  else if (mT == 2)
 		  {
-			  //Log.i("apply", "delete mT: " + mT);
-			  //Log.i("apply", "delete data: " + data);
-			  //Log.i("apply", "delete offset: " + offset);
 			  serverCopy = serverCopy.substring(0,startLoc-offset) + serverCopy.substring(startLoc, serverCopy.length());
+			  Log.i("apply", "del server copy:" + serverCopy);
 			  for(int i = 0; i < cursors.size(); i++) //update all locations (works)
 			  {
 				  if (cursors.get(i).cursorLoc >= startLoc)
@@ -802,29 +808,33 @@ public class MainActivity extends Activity
 				  }
 			  }
 			  
-		  }//--------------end delete-------------
-		  else //-------cursor move----------------
+		  }
+		  else 
 		  {
-			  //Log.i("apply", "changing cursor location");
-			  //Log.i("apply", "who moved: " + cursors.get(indexOfUser).userID);
-			  //Log.i("apply", "move it how far?: " + offset); //I hope this is relative, and not indexed
 			  cursors.get(indexOfUser).cursorLoc += offset;
-			  
-			  //for (int i = 0; i < cursors.size(); i++)
-			  //{
-				  //Log.i("apply", "final location1: " + cursors.get(i).cursorLoc );
-				  
-			  //}
-			  //Log.i("apply", "final location2: " + User.cursorLoc);
-			  
-			  
-		  } //-------end cursor move---------------
+		  }
+		  
+		  if (mid == lastLocalMove || lastMoveSeen) //now, switch over copies
+		  {
+			  lastMoveSeen = true;
+			  if (mT == 1 || mT == 2)
+			  {
+				  //Log.i("apply", "I would overwrite: " + to_broadcast.getText().toString() + " with: " + serverCopy);
+				  to_broadcast.setText(serverCopy);
+				  to_broadcast.setSelection(cursors.get(indexOfUser).cursorLoc); //put the cursor back
+				  //User.isTextSetManually = false;
+			  }
+
+		  }
+		  //----testing------
+		  
+		  Log.i("apply", "local copy: " + to_broadcast.getText().toString() );
 		  Log.i("apply", "final server copy: " + serverCopy);
 		  for (int i = 0; i < cursors.size(); i++)
 		  {
 			  Log.i("apply", "final locations of" + i + ": " + cursors.get(i).cursorLoc );
 		  }
-		  
+		  return;
 		  
 		  
 	  }
