@@ -20,14 +20,6 @@
         android:text="Redo" />
 
     <Button
-        android:id="@+id/broadcast_button"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_alignTop="@+id/RedoButton"
-        android:layout_centerHorizontal="true"
-        android:text="@string/braodcast_text" />
-
-    <Button
         android:id="@+id/UndoButton"
         style="?android:attr/buttonStyleSmall"
         android:layout_width="wrap_content"

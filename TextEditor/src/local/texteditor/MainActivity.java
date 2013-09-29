@@ -1,15 +1,19 @@
 package local.texteditor;
 
-import java.io.*;
-import java.util.*;
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Random;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import com.google.protobuf.InvalidProtocolBufferException;
-import edu.umich.imlc.collabrify.client.*;
-import edu.umich.imlc.collabrify.client.exceptions.CollabrifyException;
+
 import local.texteditor.MovesProtos.Move;
 import android.app.Activity;
 import android.app.AlertDialog;
+import android.app.ProgressDialog;
+import android.content.Context;
 import android.content.DialogInterface;
 import android.os.Bundle;
 import android.text.Editable;
@@ -17,16 +21,25 @@ import android.text.TextWatcher;
 import android.util.Log;
 import android.view.View;
 import android.view.View.OnClickListener;
-import android.widget.*;
+import android.widget.Button;
+import android.widget.CheckBox;
+import android.widget.EditText;
+
+import com.google.protobuf.InvalidProtocolBufferException;
+
+import edu.umich.imlc.collabrify.client.CollabrifyAdapter;
+import edu.umich.imlc.collabrify.client.CollabrifyClient;
+import edu.umich.imlc.collabrify.client.CollabrifyListener;
+import edu.umich.imlc.collabrify.client.CollabrifySession;
+import edu.umich.imlc.collabrify.client.exceptions.CollabrifyException;
 
 public class MainActivity extends Activity {
-	private final String TAG1 = "adds";
-	private final String TAG2 = "dels";
-	public final static String EXTRA_MESSAGE = "local.myfirstapp.message";
+
 	private EditText to_broadcast;
 	private String continuousString = "";
 	private int continuousCount = 0;
 	private long startTime;
+	private boolean createdSession;
 
 	private static final Level LOGGING_LEVEL = Level.ALL;
 
@@ -42,11 +55,15 @@ public class MainActivity extends Activity {
 	private String sessionName;
 	private ByteArrayInputStream baseFileBuffer;
 	private ByteArrayOutputStream baseFileReceiveBuffer;
+	
+	private Context context;
+	private ProgressDialog pd;
 
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
 		setContentView(R.layout.activity_main);
+		
 
 		/*
 		 * get the edittext and link user to edittext
@@ -76,14 +93,18 @@ public class MainActivity extends Activity {
 		 */
 		Button undoButton = (Button) findViewById(R.id.UndoButton);
 		Button redoButton = (Button) findViewById(R.id.RedoButton);
+		
 		undoButton.setOnClickListener(new OnClickListener() {
 			@Override
 			public void onClick(View v) {
 				if (continuousCount != 0)
+				{
 					generateInsertDelete();
+				}
 
-				EditCom com = User.Undo(); // now broadcast retMove
-				if (com != null) {
+				EditCom com = User.Undo(); // broadcast move
+				if (com != null) 
+				{
 					Move retmove = com.generateMoveMes(1);
 					sendretMove(retmove, "undo");
 				}
@@ -91,12 +112,16 @@ public class MainActivity extends Activity {
 		});
 		redoButton.setOnClickListener(new OnClickListener() {
 			@Override
-			public void onClick(View v) {
+			public void onClick(View v) 
+			{
 				if (continuousCount != 0)
+				{
 					generateInsertDelete();
+				}
 
-				EditCom com = User.Redo(); // now broadcast retMove
-				if (com != null) {
+				EditCom com = User.Redo(); //broadcast move
+				if (com != null) 
+				{
 					Move retmove = com.generateMoveMes(2);
 					sendretMove(retmove, "redo");
 				}
@@ -109,24 +134,28 @@ public class MainActivity extends Activity {
 		to_broadcast.setSingleLine(false);
 		to_broadcast.setHorizontallyScrolling(false);
 		to_broadcast.setLongClickable(false);
-		to_broadcast.setOnClickListener(new View.OnClickListener() {
+		
+		to_broadcast.setOnClickListener(new View.OnClickListener() { //moving the cursor
 			@Override
-			public void onClick(View v) {
+			public void onClick(View v) 
+			{
 				if (continuousCount != 0)
+				{
 					generateInsertDelete();
+				}
 
 				int cursorNewLoc = to_broadcast.getSelectionEnd();
 				int offset = cursorNewLoc - User.cursorLoc;
 
-				if (offset != 0) {
+				if (offset != 0) 
+				{
 					to_broadcast.setSelection(cursorNewLoc);
 					User.cursorLoc = cursorNewLoc;
 
 					EditCom com = new EditCom(User.Operation.CURSOR, null,
 							offset);
 					User.undoList.add(com);
-					Move retmove = com.generateMoveMes(0); // now broadcast
-															// retmove
+					Move retmove = com.generateMoveMes(0); //broadcast move
 					sendretMove(retmove, "cur");
 
 					User.redoList.clear();
@@ -142,24 +171,18 @@ public class MainActivity extends Activity {
 			@Override
 			public void beforeTextChanged(CharSequence s, int start, int count,
 					int after) {
-				if (User.isTextSetManually) {
-					if (count > after) // delete
+				if (User.isTextSetManually) 
+				{
+					if (count > after) // for character delete
 					{
-						Log.i(TAG2, "sequence: " + s);
-						Log.i(TAG2, "start: " + start);
-						Log.i(TAG2, "count: " + count);
-						Log.i(TAG2, "after: " + after);
-						Log.i(TAG2, "characters deleted: "
-								+ s.toString().substring(start, start + count));
-
 						if (continuousCount > 0)
+						{
 							generateInsertDelete();
+						}
 
 						startTime = System.currentTimeMillis();
 						continuousCount--;
-						continuousString = s.toString().substring(start,
-								start + count)
-								+ continuousString;
+						continuousString = s.toString().substring(start, start + count) + continuousString;
 					}
 				}
 			}
@@ -167,31 +190,28 @@ public class MainActivity extends Activity {
 			@Override
 			public void onTextChanged(CharSequence s, int start, int before,
 					int count) {
-				if (User.isTextSetManually) {
-					if (count < before) // this is a delete, deal with adding it
-										// to the queue elsewhere
+				if (User.isTextSetManually) 
+				{
+					if (count < before) 
+					{}
+					else if (count > before) // character add
 					{
-					} else if (count > before) // this is an add
-					{
-						Log.i(TAG1, "sequence: " + s);
-						Log.i(TAG1, "start: " + start);
-						Log.i(TAG1, "before: " + before);
-						Log.i(TAG1, "count: " + count);
-						Log.i(TAG1, "characters added: "
-								+ s.toString()
-										.substring(start, (start + count)));
 
 						if (continuousCount < 0)
+						{
 							generateInsertDelete();
+						}
 
 						startTime = System.currentTimeMillis();
 						continuousCount++;
 						continuousString += s.toString().substring(start,
 								start + count);
-					} else // this is a full replace
-					{
-					}
-				} else {
+					} 
+					else //not used
+					{}
+				} 
+				else 
+				{
 					User.isTextSetManually = true;
 				}
 			}
@@ -201,7 +221,7 @@ public class MainActivity extends Activity {
 		
 		/*
 		 * createSession, joinSession, leaveSession, receiveEvent,
-		 * broadcastEvetn
+		 * broadcastEvent
 		 */
 		withBaseFile = (CheckBox) findViewById(R.id.withBaseFileCheckBox);
 		createSessionButton = (Button) findViewById(R.id.CreateButton);
@@ -224,8 +244,12 @@ public class MainActivity extends Activity {
 								.getText().toString().getBytes());
 						myClient.createSessionWithBase(sessionName, tags, null,
 								0);
+						createdSession = true;
+						
 					} else {
 						myClient.createSession(sessionName, tags, null, 0);
+						
+						createdSession = true;
 					}
 					Log.i("session", "Session name is " + sessionName);
 				} catch (CollabrifyException e) {
@@ -240,6 +264,7 @@ public class MainActivity extends Activity {
 			public void onClick(View v) {
 				try {
 					myClient.requestSessionList(tags); // UI maybe
+					createdSession = false;
 				} catch (Exception e) {
 					System.err.println("error " + e);
 				}
@@ -251,7 +276,7 @@ public class MainActivity extends Activity {
 			public void onClick(View v) {
 				try {
 					if (myClient.inSession())
-						myClient.leaveSession(true); // UI maybe
+						myClient.leaveSession(createdSession); // UI maybe
 				} catch (CollabrifyException e) {
 					System.err.println("error " + e);
 				}
@@ -273,54 +298,45 @@ public class MainActivity extends Activity {
 
 			@Override
 			public void onReceiveEvent(final long orderId, final int subId,
-					String eventType, final byte[] data) {
+					String eventType, final byte[] data) 
+			{
 				System.out.println("RECEIVED SUB ID:" + subId);
-				Log.i("success", "received correctly " + eventType.toString());
 				runOnUiThread(new Runnable() {
 					@Override
 					public void run() {
-						try {
+						try 
+						{
+						  //pull all the data from the protocol buffer
 							Move latestMove = Move.parseFrom(data);
 							int userWhoMadeMove = latestMove.getUserId();
 							String moveData;
 							int moveType = latestMove.getMoveType();
 							int offsetValue = latestMove.getCursorChange();
 							int undoValue = latestMove.getUndo();
-							//int recMoveId = latestMove.getMoveId();
+							
 
 							if (!User.cursorList.containsKey(userWhoMadeMove)) // new user
 							{
 								User.cursorList.put(userWhoMadeMove, User.cursorList.get(User.Id) );
 							}
-							Log.i("success", "new user: " + userWhoMadeMove
-									+ " move");
-
-							Log.i("print", "UserID who made move: "
-									+ userWhoMadeMove);		
-							Log.i("print", "undo value: " + undoValue);
-							Log.i("print", "offset value: " + offsetValue);
+							
 
 							// ---add----
-							if (moveType == 1) {
+							if (moveType == 1) 
+							{
 								moveData = latestMove.getData();
-								Log.i("print", "add");
-								Log.i("print", "String added/deleted: "
-										+ moveData);
 								User.AddShadow(userWhoMadeMove, offsetValue,
 										moveData);
 							}
 							// ---delete----
-							else if (moveType == 2) {
+							else if (moveType == 2) 
+							{
 								moveData = latestMove.getData();
-								Log.i("print", "delete");
-								Log.i("print", "String added/deleted: "
-										+ moveData);
 								User.DeleteShadow(userWhoMadeMove, offsetValue);
 							}
 							// ---cursorChange----
-							else // should be moveType 3
+							else
 							{
-								Log.i("print", "cursorChange");
 								User.CursorChangeShadow(userWhoMadeMove,
 										offsetValue);
 							}
@@ -330,9 +346,10 @@ public class MainActivity extends Activity {
 							{
 								User.numDiffMove++;
 							}
+							
 							if (User.lastsubId == subId)
 							{
-								if (continuousCount == 0 && User.numDiffMove > 0) // if local user is not typign
+								if (continuousCount == 0 && User.numDiffMove > 0) // if local user is not typing
 								{
 									User.Synchronize();
 								}
@@ -378,6 +395,7 @@ public class MainActivity extends Activity {
 									sessionId = sessionList.get(which).id();
 									sessionName = sessionList.get(which).name();
 									myClient.joinSession(sessionId, null);
+									
 								} catch (CollabrifyException e) {
 									System.err.println("error" + e);
 								}
@@ -424,6 +442,7 @@ public class MainActivity extends Activity {
 			@Override
 			public void onSessionJoined(long maxOrderId, final long baseFileSize) {
 				Log.i("session", "Session Joined"); // implement base file stuff
+				
 				if (baseFileSize > 0) {
 					// initialize buffer to receive base file
 
@@ -435,6 +454,7 @@ public class MainActivity extends Activity {
 					@Override
 					public void run() {
 						createSessionButton.setText(sessionName);
+						
 						if (baseFileSize == 0) {
 							Log.i("session", " WITHOUT base file");
 							to_broadcast.setText("");
@@ -529,7 +549,6 @@ public class MainActivity extends Activity {
 					baseFileBuffer.close();
 
 				} catch (IOException e) {
-					// TODO Auto-generated catch block
 					e.printStackTrace();
 				}
 			}
@@ -553,27 +572,23 @@ public class MainActivity extends Activity {
 	/*
 	 * generate action for insert/delete
 	 */
-	void generateInsertDelete() {
+	void generateInsertDelete() 
+	{
 		Move retmove;
 		if (continuousCount > 0) // add
 		{
 			User.cursorLoc += continuousCount;
-
-			System.out.println("user manual ADD: " + continuousString
-					+ ", after add, cursor @ " + User.cursorLoc);
 
 			EditCom com = new EditCom(User.Operation.ADD, continuousString,
 					continuousCount);
 			User.undoList.add(com);
 			retmove = com.generateMoveMes(0);
 			sendretMove(retmove, "add");
-		} else // delete
+		} 
+		else // delete
 		{
 			User.cursorLoc += continuousCount;
-
-			System.out.println("user manual DELETE: " + continuousString
-					+ ", after delete, cursor @ " + User.cursorLoc);
-
+			
 			EditCom com = new EditCom(User.Operation.DELETE, continuousString,
 					-continuousCount);
 			User.undoList.add(com);
@@ -590,13 +605,17 @@ public class MainActivity extends Activity {
 	/*
 	 * broadcast retMove
 	 */
-	void sendretMove(Move retMove, String operation) {
-		try {
+	void sendretMove(Move retMove, String operation) 
+	{
+		try 
+		{
 			User.lastsubId = myClient.broadcast(retMove.toByteArray(),
 					operation);
 			User.needToSynchronize = false;
 			Log.i("success", operation + " broadcasting success");
-		} catch (CollabrifyException e) {
+		} 
+		catch (CollabrifyException e) 
+		{
 			Log.i("failed", "broadcasting failed");
 			e.printStackTrace();
 		}

@@ -16,7 +16,10 @@ public class User
 	protected static boolean isTextSetManually = true;
 	protected static int cursorLoc = 0;
 	
-	public static String shadow = "";
+//a string only updated when an event is received
+//thus, it is always the "correct" string
+	public static String shadow = ""; 
+	
 	public static int lastsubId = -1;
 	public static boolean needToSynchronize = false;	
 	public static int numDiffMove = 0;
@@ -29,8 +32,7 @@ public class User
 	@SuppressLint("UseSparseArrays")
 	public static Map<Integer, Integer> cursorList = new HashMap<Integer, Integer>(); 
 	
-	//private static Vector cursorOfUsers = new Vector (1);
-	//vector[0] = where my cursor is
+
 	public enum Operation
 	{
 		ADD, DELETE, CURSOR, INIT
@@ -56,12 +58,9 @@ public class User
 	}
 	
 	
-  
+  //update the displayed text with the proper text from shadow copy
 	protected static void Synchronize()
 	{
-	//	to_broadcast.setFocusableInTouchMode(false);
-	//	to_broadcast.setFocusable(false);
-		
 		isTextSetManually = false;
 		to_broadcast.setText(shadow);
 		to_broadcast.setSelection(cursorList.get(Id));
@@ -71,10 +70,6 @@ public class User
 		lastsubId = -1;
 		numDiffMove = 0;
 		
-		System.out.println("Synchronzied");
-	//	to_broadcast.setFocusableInTouchMode(true);
-	//	to_broadcast.setFocusable(true);
-		System.out.println("After synchrnize, cursur change to " + cursorLoc);
 	}
 	
 	
@@ -82,6 +77,7 @@ public class User
 	/*
 	 * implementation only called for SHADOW on RECEIVING Events
 	 */
+	//update the "shadow copy" when an add is received
 	protected static void AddShadow(int userId, int count, String msg)
 	{	
 		int shadowCursor = cursorList.get(userId);
@@ -102,7 +98,7 @@ public class User
 	}	
 	
  
-  
+  //update the "shadow copy" when a delete is received
 	protected static void DeleteShadow(int userId, int count) 
 	{
 		int shadowCursor = cursorList.get(userId);
@@ -124,7 +120,7 @@ public class User
 	}
   
   
-	
+	 //update the "shadow copy" when a cursor change is received
 	protected static void CursorChangeShadow(int userId, int offset)
 	{
 		int toPosition = cursorList.get(userId) + offset;
@@ -145,12 +141,11 @@ public class User
 	 */
 	protected static EditCom Undo()
   	{ 
-	  	if (!undoList.empty()) // if undoList is not empty
+	  	if (!undoList.empty())
 	  	{
 	  		EditCom com = undoList.lastElement();   
 	  		System.out.println("user send UNDO: " + com.operation + com.mes + com.offset);
-  			redoList.push(undoList.pop());  		
-	  		System.out.println("# of undo/redo left: " + undoList.size() + " / " + redoList.size());  		
+  			redoList.push(undoList.pop());
 	  		return com;
 	  	} 
 	  	else // if undo list is empty
@@ -165,12 +160,11 @@ public class User
   
 	protected static EditCom Redo()
 	{  
-		if (!redoList.empty()) // redoList is not empty
+		if (!redoList.empty())
 		{
 			EditCom com = redoList.lastElement();    
 			System.out.println("user send REDO: " + com.operation + com.mes + com.offset);
-			undoList.push(redoList.pop());		
-			System.out.println("Num of undo/redo left: " + undoList.size() + " / " + redoList.size());		
+			undoList.push(redoList.pop());			
 			return com;
 		} 
 		else // redo list is empty
