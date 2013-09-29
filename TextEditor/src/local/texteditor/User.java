@@ -1,21 +1,33 @@
 package local.texteditor;
 
-import java.util.*;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Random;
+import java.util.Stack;
+
+import android.annotation.SuppressLint;
 import android.widget.EditText;
 
 
 public class User 
 {
-	protected static int Id = 0;	
+	protected static int Id = new Random().nextInt();	
 	protected static EditText to_broadcast;
 	protected static boolean isTextSetManually = true;
 	protected static int cursorLoc = 0;
+	
+	public static String shadow = "";
+	public static int lastsubId = -1;
+	public static boolean needToSynchronize = false;	
+	public static int numDiffMove = 0;
+
+	
 	protected static Stack<EditCom> 
     	undoList = new Stack<EditCom> (), 
     	redoList = new Stack<EditCom> ();
-  
-	// first person is user 0, and on and on.....
-	//private int userIdInt;
+
+	@SuppressLint("UseSparseArrays")
+	public static Map<Integer, Integer> cursorList = new HashMap<Integer, Integer>(); 
 	
 	//private static Vector cursorOfUsers = new Vector (1);
 	//vector[0] = where my cursor is
@@ -25,88 +37,126 @@ public class User
 	}
 
 	
-  
-	/*
-	 * implementation of add, delete, cursor location change, and undo/redo
-	 */
-	protected static void Add(int userId, int count, String msg)
-	{
-		isTextSetManually = false;
+	protected static void initialize()
+	{	
+		isTextSetManually = true;
+		cursorLoc = 0;
+		
+		shadow = "";
+		lastsubId = -1;
+		needToSynchronize = false;	
+		numDiffMove = 0;
+
+	    undoList = new Stack<EditCom> (); 
+	    redoList = new Stack<EditCom> ();
+
+	    cursorList = new HashMap<Integer, Integer>();
+	    
+	    cursorList.put(Id, 0);
+	}
 	
-		if (userId == Id) //called for local undo/redo
-		{
-			to_broadcast.getText().insert(cursorLoc, msg);
-			cursorLoc += count;
-		} 
-		else // called for other users' add
+	
+  
+	protected static void Synchronize()
+	{
+	//	to_broadcast.setFocusableInTouchMode(false);
+	//	to_broadcast.setFocusable(false);
+		
+		isTextSetManually = false;
+		to_broadcast.setText(shadow);
+		to_broadcast.setSelection(cursorList.get(Id));
+		cursorLoc =  cursorList.get(Id);
+		
+		needToSynchronize = false;
+		lastsubId = -1;
+		numDiffMove = 0;
+		
+		System.out.println("Synchronzied");
+	//	to_broadcast.setFocusableInTouchMode(true);
+	//	to_broadcast.setFocusable(true);
+		System.out.println("After synchrnize, cursur change to " + cursorLoc);
+	}
+	
+	
+	
+	/*
+	 * implementation only called for SHADOW on RECEIVING Events
+	 */
+	protected static void AddShadow(int userId, int count, String msg)
+	{	
+		int shadowCursor = cursorList.get(userId);
+		shadow = 
+			shadow.substring(0,shadowCursor) + msg + shadow.substring(shadowCursor, shadow.length());
+		
+		for (Map.Entry entry : cursorList.entrySet())
 		{ 
+			if ((Integer)entry.getValue() >= shadowCursor)
+			{
+				cursorList.put((Integer)entry.getKey(), (Integer)entry.getValue()+count);
+			}
+			System.out.println(cursorList.get((Integer)entry.getKey()) );
 		}
 	  
-		System.out.println("Program ADD from user " + userId + ": " + msg + " @ " + (cursorLoc-count));
-	}
+		System.out.println("ADD from user " + userId + ": " + msg + " @ " + shadowCursor + " in shadow");
+		System.out.println("shadow status: cursor: " + cursorList.get(Id) + " content: " + shadow);
+	}	
+	
  
   
-  
-	protected static void Delete(int userId, int count) 
+	protected static void DeleteShadow(int userId, int count) 
 	{
-		isTextSetManually = false;
-	
-		if (userId == Id) //called for local undo/redo
-		{
-			to_broadcast.getText().delete(cursorLoc-count, cursorLoc);
-			cursorLoc -= count;
-		}
-		else // called for other users' delete
-		{
+		int shadowCursor = cursorList.get(userId);
+		shadow = 
+			shadow.substring(0, shadowCursor-count) + shadow.substring(shadowCursor, shadow.length());
+		
+		for (Map.Entry entry : cursorList.entrySet())
+		{ 
+			if ((Integer)entry.getValue() >= shadowCursor)
+				cursorList.put((Integer)entry.getKey(), (Integer)entry.getValue()-count);
+			else if ((Integer)entry.getValue() <= shadowCursor - count)
+			{}
+			else
+				cursorList.put((Integer)entry.getKey(), shadowCursor-count);
 		}
 	  
-		System.out.println("Program DELETE from user " + userId + "of length " + count + " @ " + (cursorLoc+count));
+		System.out.println("DELETE from user " + userId + "of length " + count + " @ " + shadowCursor + " in shadow");
+		System.out.println("shadow status: cursor: " + cursorList.get(Id) + " content: " + shadow);
 	}
   
   
-  
-	protected static void CursorChange(int userId, int offset)
+	
+	protected static void CursorChangeShadow(int userId, int offset)
 	{
-		if (userId == Id) //called for local cursor change
-		{
-			to_broadcast.setSelection(cursorLoc + offset);
-			cursorLoc += offset;	
-			System.out.println("LOCAL CURSOR CHANGE from " + (cursorLoc-offset) + " to " + cursorLoc);
-		}
-		else // called for other users' cursor change
-		{		
-		}
-	}
-  
-  
-  
-	protected static EditCom Undo()
-  	{
-	  	isTextSetManually = false;  
+		int toPosition = cursorList.get(userId) + offset;
+		if (toPosition < 0)
+			toPosition = 0;
+		else if (toPosition > shadow.length())
+			toPosition = shadow.length();
+		cursorList.put(userId, toPosition);
 
+		System.out.println("CURSOR CHANGE from user " + userId + " in shadow");
+		System.out.println("shadow status: cursor: " + cursorList.get(Id) + " content: " + shadow);
+	}
+	
+	
+	
+	/*
+	 * undo//redo when button pushed
+	 */
+	protected static EditCom Undo()
+  	{ 
 	  	if (!undoList.empty()) // if undoList is not empty
 	  	{
-	  		EditCom com = undoList.lastElement();
-      
-	  		System.out.println("user manual UNDO: " + com.operation + com.mes + com.offset);
-      
-	  		if (com.operation == User.Operation.ADD)
-	  			Delete(Id, com.offset);
-	  		else if (com.operation == User.Operation.DELETE)
-	  			Add(Id, com.offset, com.mes);
-	  		else
-	  			CursorChange(Id, -com.offset);
-  			redoList.push(undoList.pop());
-	  		
-	  		System.out.println("# of undo/redo left: " + undoList.size() + " / " + redoList.size());
-	  		
+	  		EditCom com = undoList.lastElement();   
+	  		System.out.println("user send UNDO: " + com.operation + com.mes + com.offset);
+  			redoList.push(undoList.pop());  		
+	  		System.out.println("# of undo/redo left: " + undoList.size() + " / " + redoList.size());  		
 	  		return com;
 	  	} 
 	  	else // if undo list is empty
 	  	{
 	  		System.out.print("Nothing to undo! ");
-	  		System.out.println("# of undo/redo left: " + undoList.size() + " / " + redoList.size());
-	  		
+	  		System.out.println("# of undo/redo left: " + undoList.size() + " / " + redoList.size());	  		
 	  		return null;
 	  	}
   	}
@@ -114,32 +164,19 @@ public class User
   
   
 	protected static EditCom Redo()
-	{
-		isTextSetManually = false;  
-	  
+	{  
 		if (!redoList.empty()) // redoList is not empty
 		{
-			EditCom com = redoList.lastElement();
-      
-			System.out.println("user manual REDO: " + com.operation + com.mes + com.offset);
-      
-			if (com.operation == User.Operation.ADD)
-				Add(Id, com.offset, com.mes);
-			else if (com.operation == User.Operation.DELETE)
-				Delete(Id, com.offset);
-			else
-				CursorChange(Id, com.offset);
-			undoList.push(redoList.pop());
-			
-			System.out.println("Num of undo/redo left: " + undoList.size() + " / " + redoList.size());
-			
+			EditCom com = redoList.lastElement();    
+			System.out.println("user send REDO: " + com.operation + com.mes + com.offset);
+			undoList.push(redoList.pop());		
+			System.out.println("Num of undo/redo left: " + undoList.size() + " / " + redoList.size());		
 			return com;
 		} 
 		else // redo list is empty
 		{
 			System.out.print("Nothing to redo! "); 
 			System.out.println("Num of undo/redo left: " + undoList.size() + " / " + redoList.size());
-
 			return null;
 		}
 	}

@@ -8,45 +8,50 @@ public class EditCom
   User.Operation operation;
   public int offset;
   public String mes;
-  public int moveId;
   
-  public EditCom(User.Operation operationT, String mesT, int offsetT, int mid)
+  public EditCom(User.Operation operationT, String mesT, int offsetT)
   {
     operation = operationT;
     mes = mesT;
     offset = offsetT;  
-    moveId = mid;
   }
   
   public Move generateMoveMes(int undo)
   {
 		Move move;
-		if (this.operation == User.Operation.ADD)
+		if (undo != 1 && this.operation == User.Operation.ADD || 
+			(undo == 1 && this.operation == User.Operation.DELETE))
 			move = Move.newBuilder()
 					.setUserId(User.Id) //need a user id
 					.setMoveType(1)
 					.setData(this.mes)
 					.setCursorChange(this.offset)
 					.setUndo(undo)
-					.setMoveId(this.moveId)
 					.build();
-	
-		else if(this.operation == User.Operation.DELETE)
+		else if(undo != 1 && this.operation == User.Operation.DELETE || 
+				(undo == 1 && this.operation == User.Operation.ADD))
 			move = Move.newBuilder()
 					.setUserId(User.Id)//need a user id
 					.setMoveType(2)
 					.setCursorChange(this.offset)
 					.setUndo(undo)
-					.setMoveId(this.moveId)
 					.build();
-		else
-			move = Move.newBuilder()
-					.setUserId(User.Id) //need a user id
-					.setMoveType(3)
-					.setCursorChange(this.offset)
-					.setUndo(undo)
-					.setMoveId(this.moveId)
-					.build();	
+		else {
+			if (undo == 1)
+				move = Move.newBuilder()
+						.setUserId(User.Id) //need a user id
+						.setMoveType(3)
+						.setCursorChange(-this.offset)
+						.setUndo(undo)
+						.build();
+			else
+				move = Move.newBuilder()
+				.setUserId(User.Id) //need a user id
+				.setMoveType(3)
+				.setCursorChange(this.offset)
+				.setUndo(undo)
+				.build();
+		}
 		return move;  
   }
  }
