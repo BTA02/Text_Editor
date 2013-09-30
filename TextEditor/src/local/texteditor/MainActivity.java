@@ -450,8 +450,11 @@ public class MainActivity extends Activity {
 						User.initialize();
 						if (baseFile)
 						{
+						  //updated here as well
 							User.shadow = to_broadcast.getText().toString();
-							to_broadcast.setSelection(0);
+							User.cursorList.put((Integer)User.Id, to_broadcast.getText().toString().length());
+							to_broadcast.setSelection(to_broadcast.getText().toString().length());
+							
 						}
 						else
 						{
@@ -490,12 +493,13 @@ public class MainActivity extends Activity {
 							User.initialize();
 							continuousString = "";
 							continuousCount = 0;
-						} else {
+						}
+						else 
+						{
 							Log.i("session", " WITH base file");
-							to_broadcast.setText(baseFileReceiveBuffer
-									.toString()); // not sure if works, how to receive	
-							to_broadcast.setSelection(0);
+							
 							User.initialize();
+							//updated here
 							User.isTextSetManually = false; //change won't propogate
 							User.shadow = baseFileReceiveBuffer.toString();
 							continuousString = "";
@@ -550,7 +554,16 @@ public class MainActivity extends Activity {
 						runOnUiThread(new Runnable() {
 							@Override
 							public void run() {
+							  //updated here
+							  //User.isTextSetManually = false;
 								to_broadcast.setText(baseFileReceiveBuffer.toString());
+								User.cursorList.put( (Integer)User.Id, baseFileReceiveBuffer.toString().length() );
+								
+								User.shadow = baseFileReceiveBuffer.toString();
+								to_broadcast.setSelection(baseFileReceiveBuffer.toString().length() );
+								
+								
+								//User.isTextSetManually = true;
 							}
 						});
 						baseFileReceiveBuffer.close();

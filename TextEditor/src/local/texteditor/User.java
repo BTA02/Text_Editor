@@ -102,18 +102,29 @@ public class User
 	protected static void DeleteShadow(int userId, int count) 
 	{
 		int shadowCursor = cursorList.get(userId);
-		shadow = 
-			shadow.substring(0, shadowCursor-count) + shadow.substring(shadowCursor, shadow.length());
+		if (shadowCursor - count < 0)
+		{
+		  shadow = shadow.substring(shadowCursor, shadow.length() );
+		}
+		else
+		{
+		  shadow = shadow.substring(0, shadowCursor-count) + shadow.substring(shadowCursor, shadow.length());
+		}
 		
 		for (Map.Entry entry : cursorList.entrySet())
 		{ 
 			if ((Integer)entry.getValue() >= shadowCursor)
-				cursorList.put((Integer)entry.getKey(), (Integer)entry.getValue()-count);
+			{
+				cursorList.put( (Integer)entry.getKey(), Math.max( (Integer)entry.getValue()-count, 0) );
+			}
 			else if ((Integer)entry.getValue() <= shadowCursor - count)
 			{}
 			else
-				cursorList.put((Integer)entry.getKey(), shadowCursor-count);
+			{
+				cursorList.put((Integer)entry.getKey(), Math.max(shadowCursor-count, 0) );
+			}
 		}
+		
 	  
 		System.out.println("DELETE from user " + userId + "of length " + count + " @ " + shadowCursor + " in shadow");
 		System.out.println("shadow status: cursor: " + cursorList.get(Id) + " content: " + shadow);
