@@ -40,6 +40,7 @@ public class EditCom
 			move = Move.newBuilder()
 					.setUserId(User.Id)
 					.setMoveType(2)
+					.setData(this.mes)
 					.setCursorChange(this.offset)
 					.setUndo(undo)
 					.build();

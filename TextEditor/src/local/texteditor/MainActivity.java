@@ -158,7 +158,6 @@ public class MainActivity extends Activity {
 
 					EditCom com = new EditCom(User.Operation.CURSOR, null,
 							offset);
-					//User.undoList.add(com);
 					Move retmove = com.generateMoveMes(0); //broadcast move
 					sendretMove(retmove, "cur");
 
@@ -616,7 +615,7 @@ public class MainActivity extends Activity {
 			EditCom com = new EditCom(User.Operation.ADD, continuousString,
 					continuousCount);
 
-			//User.undoList.add(com); 
+			
 			retmove = com.generateMoveMes(0);
 			sendretMove(retmove, "add");
 		} 
@@ -627,7 +626,7 @@ public class MainActivity extends Activity {
 			EditCom com = new EditCom(User.Operation.DELETE, continuousString,
 					-continuousCount);
 
-			//User.undoList.add(com); //only add moves after they get back from the server
+			
 			retmove = com.generateMoveMes(0);
 			sendretMove(retmove, "del");
 		}
