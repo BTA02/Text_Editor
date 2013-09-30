@@ -9,6 +9,8 @@ import java.util.Random;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import org.apache.http.util.ByteArrayBuffer;
+
 import local.texteditor.MovesProtos.Move;
 import android.app.Activity;
 import android.app.AlertDialog;
@@ -96,13 +98,15 @@ public class MainActivity extends Activity {
 		
 		undoButton.setOnClickListener(new OnClickListener() {
 			@Override
-			public void onClick(View v) {
+			public void onClick(View v) 
+			{
+			  
 				if (continuousCount != 0)
 				{
 					generateInsertDelete();
 				}
 
-				EditCom com = User.Undo(); // broadcast move
+				EditCom com = User.Undo();
 				if (com != null) 
 				{
 					Move retmove = com.generateMoveMes(1);
@@ -154,7 +158,7 @@ public class MainActivity extends Activity {
 
 					EditCom com = new EditCom(User.Operation.CURSOR, null,
 							offset);
-					User.undoList.add(com);
+					//User.undoList.add(com);
 					Move retmove = com.generateMoveMes(0); //broadcast move
 					sendretMove(retmove, "cur");
 
@@ -200,6 +204,7 @@ public class MainActivity extends Activity {
 						if (continuousCount < 0)
 						{
 							generateInsertDelete();
+							
 						}
 
 						startTime = System.currentTimeMillis();
@@ -307,8 +312,16 @@ public class MainActivity extends Activity {
 						try 
 						{
 						  //pull all the data from the protocol buffer
-							Move latestMove = Move.parseFrom(data);
+							Move latestMove = Move.parseFrom(data);  
 							int userWhoMadeMove = latestMove.getUserId();
+							//if another user edits the document, all previous undo/redos
+							//can not be gauranteed to be legal moves
+							if (userWhoMadeMove != User.Id) 
+							{
+							  User.undoList.clear();
+							  User.redoList.clear();
+							}
+							
 							String moveData;
 							int moveType = latestMove.getMoveType();
 							int offsetValue = latestMove.getCursorChange();
@@ -320,11 +333,15 @@ public class MainActivity extends Activity {
 								User.cursorList.put(userWhoMadeMove, User.cursorList.get(User.Id) );
 							}
 							
-
 							// ---add----
 							if (moveType == 1) 
 							{
 								moveData = latestMove.getData();
+	              if (userWhoMadeMove == User.Id && undoValue != 1) //local move, so add to UndoList
+	              {
+	                EditCom com = new EditCom(User.Operation.ADD, moveData, offsetValue);
+	                User.undoList.add(com);
+	              }
 								User.AddShadow(userWhoMadeMove, offsetValue,
 										moveData);
 							}
@@ -332,11 +349,21 @@ public class MainActivity extends Activity {
 							else if (moveType == 2) 
 							{
 								moveData = latestMove.getData();
+								if (userWhoMadeMove == User.Id && undoValue != 1) //local move, so add to UndoList
+                {
+                  EditCom com = new EditCom(User.Operation.DELETE, moveData, offsetValue);
+                  User.undoList.add(com);
+                }
 								User.DeleteShadow(userWhoMadeMove, offsetValue);
 							}
 							// ---cursorChange----
 							else
 							{
+							  if (userWhoMadeMove == User.Id && undoValue != 1) //local move, so add to UndoList
+                {
+                  EditCom com = new EditCom(User.Operation.CURSOR, null, offsetValue);
+                  User.undoList.add(com);
+                }
 								User.CursorChangeShadow(userWhoMadeMove,
 										offsetValue);
 							}
@@ -346,6 +373,7 @@ public class MainActivity extends Activity {
 							{
 								User.numDiffMove++;
 							}
+							
 							
 							if (User.lastsubId == subId)
 							{
@@ -427,7 +455,9 @@ public class MainActivity extends Activity {
 							to_broadcast.setSelection(0);
 						}
 						else
+						{
 							to_broadcast.setText("");
+						}
 						continuousString = "";
 						continuousCount = 0;
 					}
@@ -467,6 +497,7 @@ public class MainActivity extends Activity {
 									.toString()); // not sure if works, how to receive	
 							to_broadcast.setSelection(0);
 							User.initialize();
+							User.isTextSetManually = false; //change won't propogate
 							User.shadow = baseFileReceiveBuffer.toString();
 							continuousString = "";
 							continuousCount = 0;
@@ -515,17 +546,17 @@ public class MainActivity extends Activity {
 				try {
 					if (baseFileChunk != null) {
 						baseFileReceiveBuffer.write(baseFileChunk);
+						//System.out.println(baseFileChunk.toString());
 					} else {
 						runOnUiThread(new Runnable() {
 							@Override
 							public void run() {
-								// to_broadcast.setText(baseFileReceiveBuffer.toString());
+								to_broadcast.setText(baseFileReceiveBuffer.toString());
 							}
 						});
 						baseFileReceiveBuffer.close();
 					}
 				} catch (IOException e) {
-					// TODO Auto-generated catch block
 					e.printStackTrace();
 				}
 			}
@@ -542,7 +573,10 @@ public class MainActivity extends Activity {
 
 					@Override
 					public void run() {
-						// to_broadcast.setText(baseFileReceiveBuffer.toString());
+					  
+					  int i = 0;
+					  i++;
+						//to_broadcast.setText(baseFileReceiveBuffer.toString());
 					}
 				});
 				try {
@@ -581,7 +615,8 @@ public class MainActivity extends Activity {
 
 			EditCom com = new EditCom(User.Operation.ADD, continuousString,
 					continuousCount);
-			User.undoList.add(com);
+
+			//User.undoList.add(com); 
 			retmove = com.generateMoveMes(0);
 			sendretMove(retmove, "add");
 		} 
@@ -591,7 +626,8 @@ public class MainActivity extends Activity {
 			
 			EditCom com = new EditCom(User.Operation.DELETE, continuousString,
 					-continuousCount);
-			User.undoList.add(com);
+
+			//User.undoList.add(com); //only add moves after they get back from the server
 			retmove = com.generateMoveMes(0);
 			sendretMove(retmove, "del");
 		}
